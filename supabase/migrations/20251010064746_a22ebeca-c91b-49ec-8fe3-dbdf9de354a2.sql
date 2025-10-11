@@ -15,7 +15,7 @@ CREATE TABLE public.workers (
   category_id UUID REFERENCES public.categories(id) ON DELETE CASCADE,
   phone TEXT NOT NULL,
   email TEXT,
-  location TEXT NOT NULL,
+  location TEXT,
   description TEXT,
   profile_image_url TEXT,
   experience_years INTEGER DEFAULT 0,
@@ -33,9 +33,6 @@ CREATE TABLE public.worker_images (
 );
 
 -- Enable Row Level Security
-ALTER TABLE workers
-  ADD COLUMN IF NOT EXISTS avatar_url text,
-  ADD COLUMN IF NOT EXISTS work_images jsonb;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.workers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.worker_images ENABLE ROW LEVEL SECURITY;
@@ -105,24 +102,3 @@ INSERT INTO public.categories (name, description, image_url) VALUES
   ('Decoration', 'Beautiful event decorations', '/placeholder.svg'),
   ('Venue Management', 'Complete venue setup and management', '/placeholder.svg'),
   ('Entertainment', 'Live bands, dancers, and entertainers', '/placeholder.svg');
-
--- Create bookings table
-CREATE TABLE IF NOT EXISTS public.bookings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  worker_id UUID REFERENCES public.workers(id) ON DELETE CASCADE,
-  customer_name TEXT NOT NULL,
-  customer_phone TEXT NOT NULL,
-  service_type TEXT,
-  booking_date TIMESTAMP WITH TIME ZONE NOT NULL,
-  status TEXT DEFAULT 'pending',
-  total_amount DECIMAL(10,2),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
--- Enable RLS for bookings
-ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies for bookings
-CREATE POLICY "Anyone can view bookings" ON public.bookings FOR SELECT USING (true);
-CREATE POLICY "Authenticated users can create bookings" ON public.bookings FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Users can update their bookings" ON public.bookings FOR UPDATE USING (auth.role() = 'authenticated');
