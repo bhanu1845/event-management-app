@@ -25,7 +25,6 @@ import Contact from "./pages/Contact";
 import SearchResults from "@/pages/SearchResults";
 import NotFound from "./pages/NotFound";
 import CartPage from "./pages/CartPage";
-import  ServicesPage from "@/pages/ServicesPage";
 
 const queryClient = new QueryClient();
 
@@ -73,7 +72,7 @@ function App() {
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/search" element={<SearchResults />} />
                 
-                  <Route path="/services" element={<ServicesPage />} />
+                  
                   <Route path="/cart" element={<CartPage />} />
 
                   {/* Catch-all for 404 */}
