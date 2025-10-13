@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/hooks/useLanguage";
 import { Star, Users, Award, Clock, Sparkles, Search, Calendar, Heart, ArrowRight, ShoppingCart, User, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Category {
@@ -28,7 +29,7 @@ interface Worker {
 }
 
 // Image Slider Component
-const ImageSlider: React.FC<{ categories: Category[] }> = ({ categories }) => {
+const ImageSlider: React.FC<{ categories: Category[]; t: (key: string) => string }> = ({ categories, t }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Slider images with category mapping
@@ -36,36 +37,36 @@ const ImageSlider: React.FC<{ categories: Category[] }> = ({ categories }) => {
     {
       id: "catering",
       image: "/images/catring.jpg",
-      title: "Catering Services",
-      description: "Delicious food for your events",
+      title: t('cateringServices'),
+      description: t('cateringDescription'),
       fallback: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&h=400&fit=crop"
     },
     {
       id: "photography", 
       image: "/images/photography.jpg",
-      title: "Photography",
-      description: "Capture your precious moments",
+      title: t('photographyServices'),
+      description: t('photographyDescription'),
       fallback: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?w=800&h=400&fit=crop"
     },
     {
       id: "dj",
       image: "/images/dj.jpg", 
-      title: "DJ Services",
-      description: "Music and entertainment for your party",
+      title: t('musicDjServices'),
+      description: t('musicDjDescription'),
       fallback: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=400&fit=crop"
     },
     {
       id: "venue",
       image: "/images/venue.jpg",
-      title: "Venue Decoration", 
-      description: "Beautiful decorations for your venue",
+      title: t('decorationServices'), 
+      description: t('decorationDescription'),
       fallback: "https://images.unsplash.com/photo-1519167758481-83f29b1fe26d?w=800&h=400&fit=crop"
     },
     {
       id: "decoration",
       image: "/images/decoration.jpg",
-      title: "Event Decoration",
-      description: "Creative decorations for any occasion", 
+      title: t('decorationServices'),
+      description: t('decorationDescription'), 
       fallback: "https://images.unsplash.com/photo-1464207687429-7505649dae38?w=800&h=400&fit=crop"
     }
   ];
@@ -163,15 +164,15 @@ const ImageSlider: React.FC<{ categories: Category[] }> = ({ categories }) => {
 };
 
 // Professional Card Component with enhanced animations
-const ProfessionalCard: React.FC<{ worker: Worker; index: number }> = ({ worker, index }) => {
+const ProfessionalCard: React.FC<{ worker: Worker; index: number; t: (key: string) => string }> = ({ worker, index, t }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
 
   const getExperienceText = (years: number) => {
-    if (years === 0) return "Fresher";
-    if (years <= 2) return `${years} years`;
-    if (years <= 5) return `${years} years`;
-    return `${years}+ years`;
+    if (years === 0) return t('fresher');
+    if (years <= 2) return `${years} ${t('years')}`;
+    if (years <= 5) return `${years} ${t('years')}`;
+    return `${years}+ ${t('years')}`;
   };
 
   const getInitials = (name: string) => {
@@ -236,7 +237,7 @@ const ProfessionalCard: React.FC<{ worker: Worker; index: number }> = ({ worker,
               </div>
               <div className="flex items-center gap-1">
                 <Users className="h-3 w-3 text-gray-600" />
-                <span>{worker.projects_completed}+ projects</span>
+                <span>{worker.projects_completed}+ {t('projects')}</span>
               </div>
             </div>
           </div>
@@ -248,7 +249,7 @@ const ProfessionalCard: React.FC<{ worker: Worker; index: number }> = ({ worker,
             className="w-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 text-white text-xs h-8 shadow-lg hover:shadow-xl transition-all duration-300"
           >
             <Link to={`/worker/${worker.id}`}>
-              View Profile
+              {t('viewDetails')}
             </Link>
           </Button>
         </CardContent>
@@ -261,8 +262,9 @@ const ProfessionalCard: React.FC<{ worker: Worker; index: number }> = ({ worker,
 const CategoryProfessionals: React.FC<{ 
   category: Category; 
   workers: Worker[]; 
-  categoryIndex: number 
-}> = ({ category, workers, categoryIndex }) => {
+  categoryIndex: number;
+  t: (key: string) => string;
+}> = ({ category, workers, categoryIndex, t }) => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -285,9 +287,9 @@ const CategoryProfessionals: React.FC<{
         {/* Category Header */}
         <div className="text-center mb-4">
           <h2 className="text-lg font-bold text-black">
-            {category.name}
+            {t(category.name) || category.name}
           </h2>
-          <p className="text-sm text-gray-600 mt-1">Workers</p>
+          <p className="text-sm text-gray-600 mt-1">{t('workers')}</p>
         </div>
 
         {/* Professionals Grid */}
@@ -297,6 +299,7 @@ const CategoryProfessionals: React.FC<{
               key={worker.id} 
               worker={worker} 
               index={index}
+              t={t}
             />
           ))}
         </div>
@@ -315,7 +318,7 @@ const CategoryProfessionals: React.FC<{
               className="border-2 border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white px-8 py-3 text-lg rounded-full transition-all duration-300 transform hover:scale-105"
             >
               <Link to={`/category/${category.id}`}>
-                View All {category.name} Professionals
+                {t('viewAll')} {t(category.name) || category.name} {t('professionals')}
                 <Users className="h-5 w-5 ml-2" />
               </Link>
             </Button>
@@ -335,6 +338,7 @@ const Home = () => {
   const [workersByCategory, setWorkersByCategory] = useState<Map<string, Worker[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -519,7 +523,7 @@ const Home = () => {
       {/* Hero Banner with Image Slider */}
       <section className="bg-gradient-to-r from-blue-50 to-purple-50 py-8">
         <div className="container mx-auto px-4">
-          <ImageSlider categories={categories} />
+          <ImageSlider categories={categories} t={t} />
         </div>
       </section>
 
@@ -528,10 +532,10 @@ const Home = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-800 mb-2">
-              Discover Services
+              {t('exploreServices')}
             </h2>
             <p className="text-gray-600">
-              Everything you need for your perfect event
+              {t('trustedProfessionals')}
             </p>
           </div>
 
@@ -555,11 +559,11 @@ const Home = () => {
                     <div className="relative h-40 bg-gray-100 overflow-hidden rounded-t-lg">
                       <img
                         src={getCategoryImage(category.name)}
-                        alt={category.name}
+                        alt={t(category.name) || category.name}
                         className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          target.src = `https://via.placeholder.com/400x300/3B82F6/FFFFFF?text=${encodeURIComponent(category.name)}`;
+                          target.src = `https://via.placeholder.com/400x300/3B82F6/FFFFFF?text=${encodeURIComponent(t(category.name) || category.name)}`;
                         }}
                       />
                       <div className="absolute top-2 right-2">
@@ -575,7 +579,7 @@ const Home = () => {
                     
                     <CardContent className="p-4">
                       <CardTitle className="text-lg font-semibold text-gray-800 mb-2">
-                        {category.name}
+                        {t(category.name) || category.name}
                       </CardTitle>
                       <CardDescription className="text-sm text-gray-600 line-clamp-2">
                         {category.description}
@@ -583,7 +587,7 @@ const Home = () => {
                       <div className="flex items-center justify-between mt-3">
                         <div className="flex items-center gap-1 text-xs text-gray-500">
                           <Users className="h-3 w-3" />
-                          <span>50+ Experts</span>
+                          <span>{t('experiencedProfessionals')}</span>
                         </div>
                         <ArrowRight className="h-4 w-4 text-blue-500 transform group-hover:translate-x-1 transition-transform" />
                       </div>
@@ -607,6 +611,7 @@ const Home = () => {
             category={category}
             workers={workers}
             categoryIndex={index}
+            t={t}
           />
         );
       })}
