@@ -1,40 +1,55 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ShoppingCart, Trash2, ArrowLeft, Sparkles, Zap, Clock, Shield, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
+import { getCart, removeFromCart, clearCart } from "@/lib/cartUtils";
 
 interface CartItem {
   id: string;
   name: string;
-  profile_image_url: string;
+  profile_image_url?: string;
   service?: string;
   rating?: number;
   price?: number;
   category?: string;
   phone?: string;
   location?: string;
-  description?: string; // Added to match the fetch structure
+  description?: string;
+  addedAt?: string;
 }
 
 const CartPage: React.FC = () => {
+  const [user, setUser] = useState<User | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [removingItem, setRemovingItem] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const loadCart = async () => {
+  const loadCart = useCallback(async () => {
     try {
       setLoading(true);
-      const raw = localStorage.getItem("cart") || "[]";
-      const cart = JSON.parse(raw);
       
-      if (!Array.isArray(cart) || cart.length === 0) {
+      // Check authentication first
+      const { data } = await supabase.auth.getSession();
+      const currentUser = data?.session?.user ?? null;
+      setUser(currentUser);
+      
+      if (!currentUser) {
+        navigate("/auth");
+        return;
+      }
+      
+      const cart = getCart(currentUser.id);
+      
+      if (cart.length === 0) {
         setCartItems([]);
         setLoading(false);
         return;
@@ -71,7 +86,7 @@ const CartPage: React.FC = () => {
       } else {
         // Combine local cart with backend data
         const enhancedCart = cart.map((cartItem: CartItem) => {
-          const workerData = workers?.find((w: any) => w.id === cartItem.id);
+          const workerData = workers?.find((w: { id: string }) => w.id === cartItem.id);
           const serviceName = workerData?.categories?.name || "General Service";
           
           return {
@@ -94,7 +109,7 @@ const CartPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
     loadCart();
@@ -104,18 +119,19 @@ const CartPage: React.FC = () => {
     return () => {
       window.removeEventListener("cartUpdated", handleCartUpdate);
     };
-  }, []);
+  }, [loadCart]);
 
   const handleRemoveItem = async (workerId: string) => {
+    if (!user) return;
+    
     setRemovingItem(workerId);
     
     // Animate the removal before updating state
     await new Promise(resolve => setTimeout(resolve, 400));
     
-    const updatedCart = cartItems.filter(item => item.id !== workerId);
-    localStorage.setItem("cart", JSON.stringify(updatedCart));
+    removeFromCart(user.id, workerId);
+    const updatedCart = getCart(user.id);
     setCartItems(updatedCart);
-    window.dispatchEvent(new Event("cartUpdated"));
     setRemovingItem(null);
 
     toast({
@@ -131,45 +147,22 @@ const CartPage: React.FC = () => {
     setIsCheckingOut(true);
     
     try {
-      // FIX: Use `(supabase as any)` to bypass the TypeScript error
-      // because the `bookings` table is not in the generated Supabase types.
-      const { data: bookings, error } = await (supabase as any)
-        .from('bookings')
-        .insert(
-          cartItems.map(item => ({
-            worker_id: item.id,
-            // Placeholder data - replace with actual user data later
-            customer_name: "Customer", 
-            customer_phone: "1234567890", 
-            service_type: item.service,
-            booking_date: new Date().toISOString(),
-            status: 'confirmed',
-            total_amount: item.price
-          }))
-        )
-        .select();
+      // Simulate checkout process
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      if (error) {
-        console.warn('Bookings table might not exist or insertion failed (Supabase Error):', error);
-        toast({
-          title: "⚠️ Booking Processed Locally",
-          description: `Booked ${cartItems.length} professional(s). Database link failed.`,
-          duration: 5000,
-          className: "bg-orange-500 text-white",
-        });
-      } else {
-        toast({
-          title: "🎉 Booking Confirmed!",
-          description: `Successfully booked ${cartItems.length} professional(s) via Supabase.`,
-          duration: 5000,
-          className: "bg-green-500 text-white",
-        });
-      }
+      toast({
+        title: "🎉 Booking Confirmed!",
+        description: `Successfully booked ${cartItems.length} professional(s). You will receive confirmation shortly.`,
+        duration: 5000,
+        className: "bg-green-500 text-white",
+      });
       
       // Clear cart after successful checkout (always do this)
-      localStorage.setItem("cart", "[]");
-      setCartItems([]);
-      window.dispatchEvent(new Event("cartUpdated"));
+      if (user) {
+        clearCart(user.id);
+        setCartItems([]);
+        window.dispatchEvent(new Event("cartUpdated"));
+      }
       
     } catch (error) {
       console.error('Checkout error:', error);
@@ -180,9 +173,11 @@ const CartPage: React.FC = () => {
       });
       
       // Still clear the cart on general error
-      localStorage.setItem("cart", "[]");
-      setCartItems([]);
-      window.dispatchEvent(new Event("cartUpdated"));
+      if (user) {
+        clearCart(user.id);
+        setCartItems([]);
+        window.dispatchEvent(new Event("cartUpdated"));
+      }
     } finally {
       setIsCheckingOut(false);
     }

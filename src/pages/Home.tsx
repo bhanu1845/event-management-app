@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Star, Users, Award, Clock, Sparkles, Search, Calendar, Heart, ArrowRight } from "lucide-react";
+import { Star, Users, Award, Clock, Sparkles, Search, Calendar, Heart, ArrowRight, ShoppingCart, User, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Category {
   id: string;
@@ -20,11 +20,319 @@ interface Worker {
   rating: number;
   experience_years: number;
   category_id: string;
+  category?: Category;
+  response_time: string;
+  projects_completed: number;
+  specialization: string;
+  profile_image_url?: string;
 }
+
+// Image Slider Component
+const ImageSlider: React.FC<{ categories: Category[] }> = ({ categories }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Slider images with category mapping
+  const sliderImages = [
+    {
+      id: "catering",
+      image: "/images/catring.jpg",
+      title: "Catering Services",
+      description: "Delicious food for your events",
+      fallback: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&h=400&fit=crop"
+    },
+    {
+      id: "photography", 
+      image: "/images/photography.jpg",
+      title: "Photography",
+      description: "Capture your precious moments",
+      fallback: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?w=800&h=400&fit=crop"
+    },
+    {
+      id: "dj",
+      image: "/images/dj.jpg", 
+      title: "DJ Services",
+      description: "Music and entertainment for your party",
+      fallback: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=400&fit=crop"
+    },
+    {
+      id: "venue",
+      image: "/images/venue.jpg",
+      title: "Venue Decoration", 
+      description: "Beautiful decorations for your venue",
+      fallback: "https://images.unsplash.com/photo-1519167758481-83f29b1fe26d?w=800&h=400&fit=crop"
+    },
+    {
+      id: "decoration",
+      image: "/images/decoration.jpg",
+      title: "Event Decoration",
+      description: "Creative decorations for any occasion", 
+      fallback: "https://images.unsplash.com/photo-1464207687429-7505649dae38?w=800&h=400&fit=crop"
+    }
+  ];
+
+  const nextSlide = () => {
+    setCurrentIndex((prevIndex) => (prevIndex + 1) % sliderImages.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentIndex((prevIndex) => (prevIndex - 1 + sliderImages.length) % sliderImages.length);
+  };
+
+  // Auto slide every 4 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % sliderImages.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [sliderImages.length]);
+
+  const handleImageClick = (slideId: string) => {
+    const matchingCategory = categories.find(cat => 
+      cat.name.toLowerCase().includes(slideId.toLowerCase()) ||
+      (slideId === "catering" && cat.name.toLowerCase().includes("catering")) ||
+      (slideId === "photography" && cat.name.toLowerCase().includes("photography")) ||
+      (slideId === "dj" && (cat.name.toLowerCase().includes("dj") || cat.name.toLowerCase().includes("music"))) ||
+      (slideId === "venue" && cat.name.toLowerCase().includes("venue")) ||
+      (slideId === "decoration" && cat.name.toLowerCase().includes("decoration"))
+    );
+    
+    if (matchingCategory) {
+      window.location.href = `/category/${matchingCategory.id}`;
+    }
+  };
+
+  return (
+    <div className="relative w-full h-48 md:h-56 rounded-xl overflow-hidden shadow-lg bg-white">
+      <div className="relative h-full">
+        {sliderImages.map((slide, index) => (
+          <div
+            key={index}
+            className={`absolute inset-0 transition-opacity duration-500 cursor-pointer ${
+              index === currentIndex ? 'opacity-100' : 'opacity-0'
+            }`}
+            onClick={() => handleImageClick(slide.id)}
+          >
+            <img
+              src={slide.image}
+              alt={slide.title}
+              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = slide.fallback;
+              }}
+            />
+            <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+              <div className="text-center text-white">
+                <h3 className="text-2xl md:text-3xl font-bold mb-2">{slide.title}</h3>
+                <p className="text-lg md:text-xl">{slide.description}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Navigation Arrows */}
+      <button
+        onClick={prevSlide}
+        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 transition-all duration-200 shadow-lg"
+      >
+        <ChevronLeft className="h-6 w-6 text-gray-800" />
+      </button>
+      
+      <button
+        onClick={nextSlide}
+        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 transition-all duration-200 shadow-lg"
+      >
+        <ChevronRight className="h-6 w-6 text-gray-800" />
+      </button>
+
+      {/* Dots Indicator */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+        {sliderImages.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => setCurrentIndex(index)}
+            className={`w-3 h-3 rounded-full transition-all duration-200 ${
+              index === currentIndex ? 'bg-white' : 'bg-white bg-opacity-50'
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Professional Card Component with enhanced animations
+const ProfessionalCard: React.FC<{ worker: Worker; index: number }> = ({ worker, index }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+
+  const getExperienceText = (years: number) => {
+    if (years === 0) return "Fresher";
+    if (years <= 2) return `${years} years`;
+    if (years <= 5) return `${years} years`;
+    return `${years}+ years`;
+  };
+
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
+      className="group"
+    >
+      <Card 
+        className="border border-gray-200 rounded-lg hover:shadow-md transition-all duration-300 bg-white"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <CardContent className="p-4">
+          {/* Header with Avatar and Rating */}
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center text-black font-bold text-sm">
+                {worker.profile_image_url ? (
+                  <img 
+                    src={worker.profile_image_url} 
+                    alt={worker.name}
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  getInitials(worker.name)
+                )}
+              </div>
+              <div>
+                <h3 className="font-semibold text-black text-sm">{worker.name}</h3>
+                <div className="flex items-center gap-1">
+                  <Star className="h-3 w-3 fill-black text-black" />
+                  <span className="text-sm font-bold text-black">{worker.rating}</span>
+                  <span className="text-xs text-gray-500">({worker.projects_completed} reviews)</span>
+                </div>
+              </div>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className={`p-1 h-8 w-8 ${isLiked ? 'text-pink-500' : 'text-gray-400'}`}
+              onClick={() => setIsLiked(!isLiked)}
+            >
+              <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+            </Button>
+          </div>
+
+          {/* Specialization and Experience */}
+          <div className="mb-3">
+            <Badge variant="secondary" className="bg-gray-100 text-black text-xs mb-2">
+              {worker.specialization}
+            </Badge>
+            <div className="flex items-center gap-4 text-xs text-gray-600">
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3 text-gray-600" />
+                <span>{getExperienceText(worker.experience_years)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Users className="h-3 w-3 text-gray-600" />
+                <span>{worker.projects_completed}+ projects</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Button with Radium Colors */}
+          <Button 
+            asChild 
+            size="sm"
+            className="w-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 text-white text-xs h-8 shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            <Link to={`/worker/${worker.id}`}>
+              View Profile
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
+
+// Category Section Component
+const CategoryProfessionals: React.FC<{ 
+  category: Category; 
+  workers: Worker[]; 
+  categoryIndex: number 
+}> = ({ category, workers, categoryIndex }) => {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, categoryIndex * 300);
+    return () => clearTimeout(timer);
+  }, [categoryIndex]);
+
+  if (workers.length === 0) return null;
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 50 }}
+      animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
+      transition={{ duration: 0.6, delay: categoryIndex * 0.2 }}
+      className="py-6 bg-white"
+    >
+      <div className="container mx-auto px-4">
+        {/* Category Header */}
+        <div className="text-center mb-4">
+          <h2 className="text-lg font-bold text-black">
+            {category.name}
+          </h2>
+          <p className="text-sm text-gray-600 mt-1">Workers</p>
+        </div>
+
+        {/* Professionals Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {workers.slice(0, 6).map((worker, index) => (
+            <ProfessionalCard 
+              key={worker.id} 
+              worker={worker} 
+              index={index}
+            />
+          ))}
+        </div>
+
+        {/* View More Button */}
+        {workers.length > 6 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={isVisible ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ duration: 0.5, delay: categoryIndex * 0.6 + 0.4 }}
+            className="text-center mt-6"
+          >
+            <Button 
+              asChild
+              variant="outline"
+              className="border-2 border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white px-8 py-3 text-lg rounded-full transition-all duration-300 transform hover:scale-105"
+            >
+              <Link to={`/category/${category.id}`}>
+                View All {category.name} Professionals
+                <Users className="h-5 w-5 ml-2" />
+              </Link>
+            </Button>
+          </motion.div>
+        )}
+      </div>
+    </motion.section>
+  );
+};
+
+// Import motion from framer-motion
+import { motion } from "framer-motion";
 
 const Home = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredWorkers, setFeaturedWorkers] = useState<Worker[]>([]);
+  const [workersByCategory, setWorkersByCategory] = useState<Map<string, Worker[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -40,15 +348,49 @@ const Home = () => {
         if (categoriesError) throw categoriesError;
         setCategories(categoriesData || []);
 
-        // Fetch featured workers (top rated)
+        // Fetch workers with category data and enhanced fields
         const { data: workersData, error: workersError } = await supabase
           .from("workers")
-          .select("id, name, rating, experience_years, category_id")
+          .select(`
+            id, 
+            name, 
+            rating, 
+            experience_years, 
+            category_id,
+            categories (
+              id,
+              name,
+              description,
+              image_url
+            )
+          `)
           .order("rating", { ascending: false })
-          .limit(6);
+          .limit(20);
 
         if (workersError) throw workersError;
-        setFeaturedWorkers(workersData || []);
+
+        // Transform workers data with enhanced fields
+        const transformedWorkers: Worker[] = (workersData || []).map(worker => ({
+          ...worker,
+          category: worker.categories as Category,
+          response_time: "Within 1 hour",
+          projects_completed: Math.floor(Math.random() * 200) + 50, // Random projects between 50-250
+          specialization: worker.categories ? (worker.categories as Category).name : "General"
+        }));
+
+        setFeaturedWorkers(transformedWorkers);
+
+        // Group workers by category
+        const grouped = new Map<string, Worker[]>();
+        transformedWorkers.forEach(worker => {
+          if (worker.category) {
+            const categoryWorkers = grouped.get(worker.category.id) || [];
+            categoryWorkers.push(worker);
+            grouped.set(worker.category.id, categoryWorkers);
+          }
+        });
+        
+        setWorkersByCategory(grouped);
 
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -65,9 +407,7 @@ const Home = () => {
     fetchData();
   }, [toast]);
 
-  /**
-   * Get category image based on category name
-   */
+  // Rest of the existing code remains the same...
   const getCategoryImage = (categoryName: string) => {
     const normalizedName = categoryName.toLowerCase();
     
@@ -90,200 +430,163 @@ const Home = () => {
     return "/images/default-event.jpg";
   };
 
-  // Features data array for cleaner code
-  const features = [
+  const smallCategoryButtons = [
     {
-      icon: <Award className="h-8 w-8" />,
-      title: "Verified Professionals",
-      description: "All our workers are thoroughly verified and background checked"
+      id: "catering",
+      name: "Catering",
+      emoji: "🍽️",
+      color: "hover:bg-orange-50 border-orange-200"
     },
     {
-      icon: <Clock className="h-8 w-8" />,
-      title: "Quick Booking",
-      description: "Book your preferred professional in just a few clicks"
+      id: "photography", 
+      name: "Photography",
+      emoji: "📸",
+      color: "hover:bg-purple-50 border-purple-200"
     },
     {
-      icon: <Star className="h-8 w-8" />,
-      title: "Top Ratings",
-      description: "Choose from highly rated and reviewed experts"
+      id: "venue",
+      name: "Venue",
+      emoji: "🏛️",
+      color: "hover:bg-green-50 border-green-200"
+    },
+    {
+      id: "dj",
+      name: "DJ & Music",
+      emoji: "🎵",
+      color: "hover:bg-pink-50 border-pink-200"
+    },
+    {
+      id: "decoration",
+      name: "Decoration", 
+      emoji: "🎨",
+      color: "hover:bg-yellow-50 border-yellow-200"
+    },
+    {
+      id: "entertainment",
+      name: "Entertainment",
+      emoji: "🎭",
+      color: "hover:bg-indigo-50 border-indigo-200"
+    },
+    {
+      id: "makeup",
+      name: "Makeup",
+      emoji: "💄",
+      color: "hover:bg-rose-50 border-rose-200"
+    },
+    {
+      id: "planning",
+      name: "Planning",
+      emoji: "📋",
+      color: "hover:bg-blue-50 border-blue-200"
     }
   ];
 
+  const findCategoryId = (categoryName: string) => {
+    const category = categories.find(cat => 
+      cat.name.toLowerCase().includes(categoryName.toLowerCase())
+    );
+    return category?.id || "#";
+  };
+
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900">
-        {/* Animated Background */}
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-600/20 via-transparent to-transparent"></div>
-          <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-          <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-yellow-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse" style={{ animationDelay: '2000ms' }}></div>
-          <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse" style={{ animationDelay: '4000ms' }}></div>
+      {/* Compact Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="container mx-auto px-4 py-2 flex items-center justify-between">
         </div>
 
-        <div className="relative z-10 text-center px-4 max-w-6xl">
-          <Badge className="mb-6 bg-white/10 backdrop-blur-sm text-white border-0 px-6 py-2 text-lg">
-            🎉 Trusted by 5000+ Customers
-          </Badge>
-          
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white mb-6 leading-tight">
-            Find Your Perfect
-            <span className="block bg-gradient-to-r from-yellow-400 to-pink-400 bg-clip-text text-transparent">
-              Event Expert
-            </span>
-          </h1>
-          
-          <p className="text-xl md:text-2xl text-white/80 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Connect with verified professionals for weddings, corporate events, parties, and more. 
-            Your dream event is just a click away!
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-            <Button asChild size="lg" className="bg-gradient-to-r from-yellow-500 to-pink-500 hover:from-yellow-600 hover:to-pink-600 text-white px-8 py-6 text-lg font-bold rounded-2xl shadow-2xl transform hover:scale-105 transition-all duration-300">
-              <Link to="/auth">
-                <Sparkles className="w-5 h-5 mr-2" />
-                Get Started Free
+        {/* Small Category Buttons */}
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between overflow-x-auto space-x-1">
+            {smallCategoryButtons.map((button) => (
+              <Link 
+                key={button.id}
+                to={`/category/${findCategoryId(button.name)}`}
+                className="flex flex-col items-center p-2 min-w-[80px] rounded-lg border transition-all duration-200 hover:shadow-md group"
+              >
+                <div className="text-2xl mb-1 group-hover:scale-110 transition-transform duration-200">
+                  {button.emoji}
+                </div>
+                <span className="text-xs font-medium text-gray-700 text-center leading-tight group-hover:text-blue-600">
+                  {button.name}
+                </span>
               </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white hover:text-purple-900 px-8 py-6 text-lg font-bold rounded-2xl backdrop-blur-sm">
-              <Link to="#categories">
-                <Search className="w-5 h-5 mr-2" />
-                Explore Services
-              </Link>
-            </Button>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-2xl mx-auto">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">5000+</div>
-              <div className="text-white/70">Happy Customers</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">200+</div>
-              <div className="text-white/70">Expert Workers</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">50+</div>
-              <div className="text-white/70">Cities</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">4.9★</div>
-              <div className="text-white/70">Average Rating</div>
-            </div>
+            ))}
           </div>
         </div>
+      </div>
 
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-          <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
-            <div className="w-1 h-3 bg-white rounded-full mt-2"></div>
-          </div>
+      {/* Hero Banner with Image Slider */}
+      <section className="bg-gradient-to-r from-blue-50 to-purple-50 py-8">
+        <div className="container mx-auto px-4">
+          <ImageSlider categories={categories} />
         </div>
       </section>
 
       {/* Categories Section */}
-      <section id="categories" className="py-20 bg-gradient-to-b from-white to-blue-50">
+      <section className="py-12 bg-white">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <Badge variant="secondary" className="mb-4 px-4 py-1 text-sm">
-              🎯 OUR SERVICES
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-              Discover Amazing Services
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-800 mb-2">
+              Discover Services
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              From photography to catering, find everything you need for your perfect event
+            <p className="text-gray-600">
+              Everything you need for your perfect event
             </p>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Card key={i} className="animate-pulse border-0 rounded-2xl shadow-lg">
-                  <div className="h-48 bg-gradient-to-br from-blue-100 to-purple-100 rounded-t-2xl"></div>
-                  <CardContent className="p-6">
-                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <Card key={i} className="animate-pulse border rounded-lg">
+                  <div className="h-40 bg-gray-200 rounded-t-lg"></div>
+                  <CardContent className="p-4">
+                    <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
                     <div className="h-4 bg-gray-200 rounded w-full"></div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {categories.map((category) => (
                 <Link key={category.id} to={`/category/${category.id}`}>
-                  <Card className="group h-full border-0 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer overflow-hidden bg-white/80 backdrop-blur-sm">
-                    <div className="relative h-48 bg-gradient-to-br from-blue-500 to-purple-600 overflow-hidden">
-                      <div className="absolute inset-0 overflow-hidden">
-                        <div className="relative w-full h-full">
-                          <img
-                            src={getCategoryImage(category.name)}
-                            alt={category.name}
-                            className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 group-hover:rotate-2"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = `https://via.placeholder.com/400x300/3B82F6/FFFFFF?text=${encodeURIComponent(category.name)}`;
-                            }}
-                          />
-                          
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-70 group-hover:opacity-50 transition-opacity duration-300"></div>
-                          
-                          <div className="absolute top-2 right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center animate-bounce">
-                            <span className="text-sm">⭐</span>
-                          </div>
-                          
-                          <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-0 group-hover:translate-y-0 transition-transform duration-500">
-                            <div className="text-white text-center">
-                              <div className="text-lg font-bold mb-1 transform translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-500 delay-200">
-                                Explore Services
-                              </div>
-                              <div className="w-8 h-1 bg-yellow-400 mx-auto transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 delay-300"></div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="absolute top-4 left-4">
-                        <div className="w-3 h-3 bg-white rounded-full animate-ping opacity-60"></div>
-                      </div>
-                      
-                      <div className="absolute bottom-4 left-4 right-4">
-                        <Badge className="bg-white/20 backdrop-blur-sm text-white border-0 transform -translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                          {category.name.includes("DJ") ? "🎵 Music" : 
-                           category.name.includes("Catering") ? "🍽️ Food" :
-                           category.name.includes("Photography") ? "📸 Photos" :
-                           category.name.includes("Decoration") ? "🎨 Decor" :
-                           category.name.includes("Venue") ? "🏢 Venue" :
-                           category.name.includes("Entertainment") ? "🎭 Fun" : "Popular"}
+                  <Card className="group h-full border rounded-lg hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer">
+                    <div className="relative h-40 bg-gray-100 overflow-hidden rounded-t-lg">
+                      <img
+                        src={getCategoryImage(category.name)}
+                        alt={category.name}
+                        className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = `https://via.placeholder.com/400x300/3B82F6/FFFFFF?text=${encodeURIComponent(category.name)}`;
+                        }}
+                      />
+                      <div className="absolute top-2 right-2">
+                        <Badge className="bg-white/90 backdrop-blur-sm">
+                          {category.name.includes("DJ") ? "🎵" : 
+                           category.name.includes("Catering") ? "🍽️" :
+                           category.name.includes("Photography") ? "📸" :
+                           category.name.includes("Decoration") ? "🎨" :
+                           category.name.includes("Venue") ? "🏛️" : "⭐"}
                         </Badge>
                       </div>
                     </div>
                     
-                    <CardContent className="p-6 relative">
-                      <div className="absolute top-0 right-0 w-20 h-20 opacity-5">
-                        <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 rounded-full"></div>
-                      </div>
-                      
-                      <CardTitle className="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors relative z-10">
+                    <CardContent className="p-4">
+                      <CardTitle className="text-lg font-semibold text-gray-800 mb-2">
                         {category.name}
                       </CardTitle>
-                      <CardDescription className="text-gray-600 leading-relaxed relative z-10">
+                      <CardDescription className="text-sm text-gray-600 line-clamp-2">
                         {category.description}
                       </CardDescription>
-                      
-                      <div className="flex items-center justify-between mt-4 relative z-10">
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
-                          <Users className="h-4 w-4" />
+                      <div className="flex items-center justify-between mt-3">
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <Users className="h-3 w-3" />
                           <span>50+ Experts</span>
                         </div>
-                        <div className="relative">
-                          <ArrowRight className="h-5 w-5 text-blue-500 transform group-hover:translate-x-1 transition-transform" />
-                          <div className="absolute -inset-2 bg-blue-100 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        </div>
+                        <ArrowRight className="h-4 w-4 text-blue-500 transform group-hover:translate-x-1 transition-transform" />
                       </div>
-                      
-                      <div className="absolute inset-0 border-2 border-transparent group-hover:border-blue-200 rounded-2xl transition-all duration-500 pointer-events-none"></div>
                     </CardContent>
                   </Card>
                 </Link>
@@ -293,127 +596,20 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Featured Workers Section */}
-      <section className="py-20 bg-gradient-to-br from-purple-50 to-pink-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <Badge variant="secondary" className="mb-4 px-4 py-1 text-sm">
-              ⭐ FEATURED EXPERTS
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
-              Meet Our Top Professionals
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Handpicked experts with proven track records and excellent customer reviews
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredWorkers.map((worker, index) => (
-              <Card key={worker.id} className="group border-0 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 bg-white/80 backdrop-blur-sm">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <CardTitle className="text-xl font-bold text-gray-800">
-                        {worker.name}
-                      </CardTitle>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm font-semibold">{worker.rating}</span>
-                        <span className="text-gray-500">•</span>
-                        <Clock className="h-4 w-4 text-blue-500" />
-                        <span className="text-sm text-gray-600">{worker.experience_years} years</span>
-                      </div>
-                    </div>
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                      {worker.name.split(' ').map(n => n[0]).join('')}
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Completed Projects</span>
-                      <span className="font-semibold">150+</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Response Time</span>
-                      <span className="font-semibold text-green-600">Within 1 hour</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Satisfaction Rate</span>
-                      <span className="font-semibold">98%</span>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 mt-6">
-                    <Button asChild className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
-                      <Link to={`/worker/${worker.id}`}>
-                        View Profile
-                      </Link>
-                    </Button>
-                    <Button variant="outline" size="icon">
-                      <Heart className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <Badge variant="secondary" className="mb-4 px-4 py-1 text-sm">
-              ✨ WHY CHOOSE US
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent mb-4">
-              The Best Platform for Event Services
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              We make event planning simple, reliable, and stress-free
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <Card key={index} className="border-0 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 text-center">
-                <CardContent className="p-8">
-                  <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center text-white mx-auto mb-4">
-                    {feature.icon}
-                  </div>
-                  <CardTitle className="text-xl font-bold mb-3">
-                    {feature.title}
-                  </CardTitle>
-                  <CardDescription className="text-gray-600">
-                    {feature.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-blue-600 to-purple-700">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Ready to Plan Your Perfect Event?
-          </h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join thousands of satisfied customers who found their perfect event professionals through our platform
-          </p>
-          <Button asChild size="lg" className="bg-white text-blue-600 hover:bg-blue-50 px-8 py-6 text-lg font-bold rounded-2xl">
-            <Link to="/auth">
-              <Sparkles className="w-5 h-5 mr-2" />
-              Get Started Today
-            </Link>
-          </Button>
-        </div>
-      </section>
+      {/* Enhanced Top Professionals Section by Category */}
+      {Array.from(workersByCategory.entries()).map(([categoryId, workers], index) => {
+        const category = categories.find(cat => cat.id === categoryId);
+        if (!category) return null;
+        
+        return (
+          <CategoryProfessionals
+            key={categoryId}
+            category={category}
+            workers={workers}
+            categoryIndex={index}
+          />
+        );
+      })}
     </div>
   );
 };

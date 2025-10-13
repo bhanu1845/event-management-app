@@ -12,6 +12,7 @@ import { WorkerCartProvider } from "./contexts/WorkerCartContext";
 
 // Component imports
 import Navbar from "@/components/Navbar";
+import CategoryNavbar from "@/components/CategoryNavbar";
 import Footer from "@/components/Footer";
 
 // Page imports
@@ -61,6 +62,7 @@ function App() {
           <WorkerCartProvider>
             <div className="min-h-screen flex flex-col">
               <Navbar user={user} />
+              <CategoryNavbar />
               <main className="flex-1">
                 <Routes>
                   <Route path="/" element={<Home />} />

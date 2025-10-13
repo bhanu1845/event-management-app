@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Phone, Mail, MapPin, Star, Search, Filter, Users, Award, Clock, Sparkles } from "lucide-react";
-import { useWorkerCart } from "@/contexts/WorkerCartContext";
+import { useWorkerCart } from "@/hooks/useWorkerCart";
 
 interface Worker {
   id: string;
