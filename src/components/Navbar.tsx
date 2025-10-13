@@ -21,16 +21,20 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
   const { toast } = useToast();
 
   /**
-   * Cart Count Synchronization Logic
-   * This useEffect listens for changes in localStorage ("cart" key)
-   * and a custom event ("cartUpdated") to keep the Navbar cart icon count accurate.
+   * Cart Count Synchronization Logic - User-specific cart
+   * Only shows cart for logged-in users, each user has separate cart data
    */
   useEffect(() => {
     const updateCartCount = () => {
+      if (!user) {
+        setCartCount(0);
+        return;
+      }
+      
       try {
-        const raw = localStorage.getItem("cart") || "[]"; // Reads the 'cart' key
+        const cartKey = `cart_${user.id}`; // User-specific cart key
+        const raw = localStorage.getItem(cartKey) || "[]";
         const cart = JSON.parse(raw);
-        // Ensure the cart item is an array before getting the length
         setCartCount(Array.isArray(cart) ? cart.length : 0);
       } catch {
         setCartCount(0);
@@ -45,7 +49,7 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
     
     // 3. Listen for changes in localStorage from other tabs/windows
     const onStorage = (e: StorageEvent) => {
-      if (e.key === "cart") updateCartCount();
+      if (user && e.key === `cart_${user.id}`) updateCartCount();
     };
     window.addEventListener("storage", onStorage);
 
@@ -54,7 +58,7 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
       window.removeEventListener("cartUpdated", updateCartCount);
       window.removeEventListener("storage", onStorage);
     };
-  }, []); // Empty dependency array means this runs once on mount
+  }, [user]); // Re-run when user changes
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -107,7 +111,7 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
           <Link to="/" className="flex items-center gap-3">
             <img src="/vibezonlogo.png" alt="Vibezon" className="h-8 w-8 object-contain" />
             <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Eventify
+              Vibezon
             </span>
           </Link>
 
@@ -129,42 +133,25 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
             </button>
           </form>
 
-
- {/* Desktop nav (visible on md+) */}
+          {/* Desktop nav (visible on md+) */}
           <div className="hidden md:flex items-center gap-4">
-            <button
-              onClick={() => navigate("/cart")}
-              className="relative p-2 rounded hover:bg-muted/50"
-              aria-label="Open cart"
-              title="Cart"
-            >
-              <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-white bg-destructive rounded-full">
-                  {cartCount}
-                </span>
-              )}
-            </button>
-
-
-            
-
-        {/*navigation links*/}
-        <Link to={""}>
-                <Button variant="default">Home</Button>
-              </Link>
-
-         <Link to={""}>
-                <Button variant="default">Services</Button>
-              </Link>
-
-           <Link to={""}>
-                <Button variant="default">About Us</Button>
-              </Link>    
-      
-
             {user ? (
               <>
+                {/* Cart button - only for logged-in users */}
+                <button
+                  onClick={() => navigate("/cart")}
+                  className="relative p-2 rounded hover:bg-muted/50"
+                  aria-label="Open cart"
+                  title="Cart"
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-white bg-destructive rounded-full">
+                      {cartCount}
+                    </span>
+                  )}
+                </button>
+
                 {/* Add Worker Link */}
                 <Link to="/add-worker">
                   <Button variant="default">Add Worker</Button>
@@ -218,17 +205,21 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                 </form>
 
                 {/* Mobile links */}
-                <button
-                  onClick={() => {
-                    setIsOpen(false);
-                    navigate("/cart");
-                  }}
-                  className="flex items-center gap-2 text-lg font-medium hover:text-primary transition-colors"
-                >
-                  <ShoppingCart className="h-5 w-5" />
-                  Cart
-                  {cartCount > 0 && <span className="ml-2 text-sm text-destructive">({cartCount})</span>}
-                </button>
+                
+                {/* Cart link - only for logged-in users */}
+                {user && (
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      navigate("/cart");
+                    }}
+                    className="flex items-center gap-2 text-lg font-medium hover:text-primary transition-colors"
+                  >
+                    <ShoppingCart className="h-5 w-5" />
+                    Cart
+                    {cartCount > 0 && <span className="ml-2 text-sm text-destructive">({cartCount})</span>}
+                  </button>
+                )}
 
                 <Link to="/" onClick={() => setIsOpen(false)} className="text-lg font-medium hover:text-primary transition-colors">
                   Home

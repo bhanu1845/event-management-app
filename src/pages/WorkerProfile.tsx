@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Phone, Mail, MapPin, Star, Calendar, Award, Users, Shield, ShoppingCart, MessageCircle, Share2 } from "lucide-react";
+import { addToCart } from "@/lib/cartUtils";
 
 interface Worker {
   id: string;
@@ -33,12 +35,17 @@ interface WorkerImage {
 const WorkerProfile = () => {
   const { workerId } = useParams();
   const [worker, setWorker] = useState<Worker | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [images, setImages] = useState<WorkerImage[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
+      // Check user authentication
+      const { data } = await supabase.auth.getSession();
+      setUser(data?.session?.user ?? null);
+      
       // Fetch worker details with category
       const { data: workerData, error: workerError } = await supabase
         .from("workers")
@@ -81,49 +88,39 @@ const WorkerProfile = () => {
   }, [workerId, toast]);
 
   const handleAddToCart = () => {
-    if (!worker) return;
+    if (!worker || !user) {
+      toast({
+        title: "Please Sign In",
+        description: "You need to be signed in to add workers to your cart.",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    // Simplified object to store in cart (for cleaner localStorage)
+    // Create cart item
     const item = {
       id: worker.id,
       name: worker.name,
-      profile_image_url: worker.profile_image_url,
-      // You can add a price/rate field here if your worker table had one
+      phone: worker.phone,
+      category: worker.categories?.name,
+      addedAt: new Date().toISOString(),
     };
     
-    // 1. Get existing cart from localStorage using the 'cart' key
-    const existingCartRaw = localStorage.getItem('cart') || '[]';
-    let existingCart: any[];
     try {
-        existingCart = JSON.parse(existingCartRaw);
-    } catch {
-        existingCart = [];
-    }
-    
-    // 2. Check if worker is already in cart
-    const isAlreadyInCart = existingCart.some((cartItem: typeof item) => cartItem.id === item.id);
-    
-    if (isAlreadyInCart) {
+      addToCart(user.id, item);
+      
+      toast({
+        title: "Added to Cart! 🛒",
+        description: `${worker.name} has been added to your cart for booking.`,
+        duration: 3000
+      });
+    } catch (error) {
       toast({
         title: "Already in Cart",
         description: `${worker.name} is already in your cart.`,
         variant: "destructive",
       });
-      return;
     }
-
-    // 3. Add to cart and save
-    const updatedCart = [...existingCart, item];
-    localStorage.setItem('cart', JSON.stringify(updatedCart));
-    
-    // 4. Dispatch the event to update the Navbar/any other listener
-    window.dispatchEvent(new Event("cartUpdated")); 
-
-    toast({
-      title: "Added to Cart! 🛒",
-      description: `${worker.name} has been added to your cart for booking.`,
-      duration: 3000
-    });
   };
 
   const handleShareProfile = async () => {
@@ -346,13 +343,28 @@ const WorkerProfile = () => {
               <CardContent className="p-6">
                 <h3 className="font-semibold text-lg mb-4 text-gray-800">Quick Actions</h3>
                 <div className="space-y-3">
-                  <Button
-                    onClick={handleAddToCart}
-                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 text-lg font-semibold"
-                  >
-                    <ShoppingCart className="h-5 w-5 mr-2" />
-                    Add to Cart
-                  </Button>
+                  {user ? (
+                    <Button
+                      onClick={handleAddToCart}
+                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 text-lg font-semibold"
+                    >
+                      <ShoppingCart className="h-5 w-5 mr-2" />
+                      Add to Cart
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => toast({
+                        title: "Please Sign In",
+                        description: "You need to sign in to add workers to your cart.",
+                        variant: "destructive",
+                      })}
+                      variant="outline"
+                      className="w-full py-3 text-lg border-2"
+                    >
+                      <ShoppingCart className="h-5 w-5 mr-2" />
+                      Sign In to Add
+                    </Button>
+                  )}
                   <Button
                     onClick={handleContact}
                     variant="outline"
