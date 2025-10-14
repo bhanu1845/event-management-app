@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Phone, Mail, MapPin, Star, Search, Filter, Users, Award, Clock, Sparkles } from "lucide-react";
 import { useWorkerCart } from "@/hooks/useWorkerCart";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface Worker {
   id: string;
@@ -40,6 +41,7 @@ const Category = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"rating" | "experience" | "newest">("rating");
   const { toast } = useToast();
+  const { t } = useLanguage();
   
   const { cart, addToCart } = useWorkerCart();
 
@@ -147,7 +149,7 @@ const Category = () => {
             </div>
             
             <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-              {category.name}
+              {t(category.name) || category.name}
             </h1>
             
             <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">

@@ -9,10 +9,11 @@ import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { WorkerCartProvider } from "./contexts/WorkerCartContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
 
 // Component imports
 import Navbar from "@/components/Navbar";
-import CategoryNavbar from "@/components/CategoryNavbar";
+import Chatbot from "@/components/Chatbot";
 import Footer from "@/components/Footer";
 
 // Page imports
@@ -31,6 +32,7 @@ const queryClient = new QueryClient();
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
 
   useEffect(() => {
     // Get initial session
@@ -59,10 +61,10 @@ function App() {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <WorkerCartProvider>
-            <div className="min-h-screen flex flex-col">
+          <LanguageProvider>
+            <WorkerCartProvider>
+              <div className="min-h-screen flex flex-col">
               <Navbar user={user} />
-              <CategoryNavbar />
               <main className="flex-1">
                 <Routes>
                   <Route path="/" element={<Home />} />
@@ -83,7 +85,12 @@ function App() {
               </main>
               <Footer />
             </div>
-          </WorkerCartProvider>
+            <Chatbot 
+              isOpen={isChatbotOpen}
+              onToggle={() => setIsChatbotOpen(!isChatbotOpen)}
+            />
+            </WorkerCartProvider>
+          </LanguageProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

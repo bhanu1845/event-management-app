@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, X, Plus, Camera, Image as ImageIcon } from "lucide-react";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface Category {
   id: string;
@@ -37,6 +38,7 @@ const AddWorker = () => {
   const [workImages, setWorkImages] = useState<File[]>([]);
   const [workPreviews, setWorkPreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -229,11 +231,11 @@ const AddWorker = () => {
         navigate("/");
       }, 1500);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating profile:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create profile",
+        description: error instanceof Error ? error.message : "Failed to create profile",
         variant: "destructive",
       });
     } finally {
@@ -293,7 +295,7 @@ const AddWorker = () => {
                       <SelectContent>
                         {categories.map((category) => (
                           <SelectItem key={category.id} value={category.id} className="text-lg">
-                            {category.name}
+                            {t(category.name) || category.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

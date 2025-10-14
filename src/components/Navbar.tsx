@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, Search, ShoppingCart } from "lucide-react";
+import { Menu, X, Search, ShoppingCart, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/hooks/useLanguage";
 import type { User } from "@supabase/supabase-js";
 
 interface NavbarProps {
@@ -18,7 +20,8 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [cartCount, setCartCount] = useState(0);
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { toast: showToast } = useToast();
+  const { currentLanguage: selectedLanguage, setLanguage: setSelectedLanguage, t } = useLanguage();
 
   /**
    * Cart Count Synchronization Logic - User-specific cart
@@ -60,16 +63,18 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
     };
   }, [user]); // Re-run when user changes
 
+
+
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      toast({
+      showToast({
         title: "Error",
         description: "Failed to sign out",
         variant: "destructive",
       });
     } else {
-      toast({
+      showToast({
         title: "Success",
         description: "Signed out successfully",
       });
@@ -79,9 +84,24 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
-    const q = searchQuery.trim();
-    if (q) navigate(`/search?q=${encodeURIComponent(q)}`);
-    else navigate("/search");
+    const q = searchQuery.trim().toLowerCase();
+    
+    if (q) {
+      // Handle specific category searches
+      if (q.includes('dj') || q.includes('music')) {
+        navigate('/category/music');
+      } else if (q.includes('photo') || q.includes('camera')) {
+        navigate('/category/photography');
+      } else if (q.includes('food') || q.includes('catering')) {
+        navigate('/category/catering');
+      } else if (q.includes('decoration') || q.includes('decor')) {
+        navigate('/category/decoration');
+      } else {
+        navigate(`/search?q=${encodeURIComponent(q)}`);
+      }
+    } else {
+      navigate("/search");
+    }
   };
 
   const getInitial = () => {
@@ -104,75 +124,109 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
   };
 
   return (
-    <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+    <>
+    <nav className="sticky top-0 z-50 bg-white border-b shadow-lg">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-3">
-            <img src="/vibezonlogo.png" alt="Vibezon" className="h-8 w-8 object-contain" />
-            <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Vibezon
-            </span>
-          </Link>
+          {/* Logo and Location */}
+          <div className="flex items-center gap-6">
+            <Link to="/" className="flex items-center gap-3">
+              <img src="/vibezonlogo.png" alt="Vibezon" className="h-8 w-8 object-contain" />
+              <span className="text-2xl font-bold text-gray-800">
+                Vibezon
+              </span>
+            </Link>
 
-          {/* Search (Desktop) */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md mx-8 items-center">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                type="search"
-                placeholder="Search services..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+          </div>
+
+          {/* Search (Desktop) - Compact size */}
+          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md mx-6">
+            <div className="flex w-full shadow-sm rounded-md overflow-hidden border border-gray-300">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  type="text"
+                  placeholder={t('searchPlaceholder')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-10 pl-9 pr-3 text-gray-800 bg-white border-0 outline-none placeholder-gray-500 text-sm"
+                />
+              </div>
+              <button 
+                type="submit" 
+                className="bg-orange-500 hover:bg-orange-600 px-4 flex items-center justify-center transition-colors"
                 aria-label="Search"
-              />
+              >
+                <Search className="h-4 w-4 text-white" />
+              </button>
             </div>
-            <button type="submit" className="ml-2 p-2 rounded hover:bg-muted/50" aria-label="Search">
-              <Search className="h-5 w-5" />
-            </button>
           </form>
 
-          {/* Desktop nav (visible on md+) */}
+          {/* Desktop nav with Language on right side */}
           <div className="hidden md:flex items-center gap-4">
+            {/* Language Selector - Moved to right side */}
+            <div className="flex items-center text-gray-700">
+              <select 
+                className="bg-transparent text-sm font-medium text-gray-800 border border-gray-300 rounded px-2 py-1 outline-none cursor-pointer"
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value)}
+              >
+                <option value="en">English</option>
+                <option value="hi">हिंदी</option>
+                <option value="te">తెలుగు</option>
+              </select>
+            </div>
+
             {user ? (
               <>
                 {/* Cart button - only for logged-in users */}
                 <button
                   onClick={() => navigate("/cart")}
-                  className="relative p-2 rounded hover:bg-muted/50"
+                  className="relative p-2 rounded hover:bg-gray-100 text-gray-700"
                   aria-label="Open cart"
                   title="Cart"
                 >
                   <ShoppingCart className="h-5 w-5" />
                   {cartCount > 0 && (
-                    <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-white bg-destructive rounded-full">
+                    <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-white bg-red-500 rounded-full">
                       {cartCount}
                     </span>
                   )}
                 </button>
 
-                {/* Add Worker Link */}
+                {/* Profile Dropdown - next to cart, no name shown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center px-2 py-1 rounded hover:bg-gray-100 text-gray-700">
+                      <div className="h-8 w-8 rounded-full bg-gray-300 text-sm font-medium text-gray-700 flex items-center justify-center overflow-hidden">
+                        <span>{getInitial()}</span>
+                      </div>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="flex items-center w-full cursor-pointer">
+                        <UserIcon className="mr-2 h-4 w-4" />
+                        {t('profile')}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={handleSignOut}
+                      className="text-red-600 focus:text-red-600 cursor-pointer"
+                    >
+                      <span className="text-xs">{t('signOut')}</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Add Worker Link - moved to end */}
                 <Link to="/add-worker">
-                  <Button variant="default">Add Worker</Button>
+                  <Button className="bg-blue-600 text-white hover:bg-blue-700">{t('addWorker')}</Button>
                 </Link>
-
-                {/* Profile Link */}
-                <Link to="/profile" className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50">
-                  <div className="h-8 w-8 rounded-full bg-muted text-sm font-medium text-white flex items-center justify-center overflow-hidden">
-                    <span>{getInitial()}</span>
-                  </div>
-                  <span className="hidden md:inline text-sm">{displayName()}</span>
-                </Link>
-
-                {/* Sign Out */}
-                <Button variant="ghost" onClick={handleSignOut}>
-                  Sign Out
-                </Button>
               </>
             ) : (
               <Link to="/auth">
-                <Button variant="default">Sign In</Button>
+                <Button className="bg-blue-600 text-white hover:bg-blue-700">{t('signIn')}</Button>
               </Link>
             )}
           </div>
@@ -180,7 +234,7 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
           {/* Mobile menu */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="text-gray-700 hover:bg-gray-100">
                 {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </Button>
             </SheetTrigger>
@@ -265,7 +319,71 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
           </Sheet>
         </div>
       </div>
+
+      {/* Blue small navbar below main navbar */}
+      <div className="bg-blue-600 border-t border-blue-500 shadow-sm">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center gap-6 py-2 overflow-x-auto scrollbar-hide">
+            <Link 
+              to="/" 
+              className="flex-shrink-0 text-sm font-medium text-white hover:text-blue-200 transition-colors whitespace-nowrap"
+            >
+              {t('home')}
+            </Link>
+            
+            <Link 
+              to="/" 
+              className="flex-shrink-0 text-sm font-medium text-white hover:text-blue-200 transition-colors whitespace-nowrap"
+            >
+              {t('allServices')}
+            </Link>
+            
+            <Link 
+              to="/category/photography" 
+              className="flex-shrink-0 text-sm font-medium text-white hover:text-blue-200 transition-colors whitespace-nowrap"
+            >
+              {t('photography')}
+            </Link>
+            
+            <Link 
+              to="/category/catering" 
+              className="flex-shrink-0 text-sm font-medium text-white hover:text-blue-200 transition-colors whitespace-nowrap"
+            >
+              {t('catering')}
+            </Link>
+            
+            <Link 
+              to="/category/decoration" 
+              className="flex-shrink-0 text-sm font-medium text-white hover:text-blue-200 transition-colors whitespace-nowrap"
+            >
+              {t('decoration')}
+            </Link>
+            
+            <Link 
+              to="/category/music" 
+              className="flex-shrink-0 text-sm font-medium text-white hover:text-blue-200 transition-colors whitespace-nowrap"
+            >
+              {t('musicDj')}
+            </Link>
+            
+            <Link 
+              to="/about" 
+              className="flex-shrink-0 text-sm font-medium text-white hover:text-blue-200 transition-colors whitespace-nowrap"
+            >
+              {t('about')}
+            </Link>
+            
+            <Link 
+              to="/contact" 
+              className="flex-shrink-0 text-sm font-medium text-white hover:text-blue-200 transition-colors whitespace-nowrap"
+            >
+              {t('contact')}
+            </Link>
+          </div>
+        </div>
+      </div>
     </nav>
+    </>
   );
 };
 
