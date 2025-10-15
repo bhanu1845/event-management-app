@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Star, Users, Award, Clock, Sparkles, Search, Calendar, Heart, ArrowRight, ShoppingCart, User, ChevronLeft, ChevronRight } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface Category {
   id: string;
@@ -28,11 +29,122 @@ interface Worker {
   profile_image_url?: string;
 }
 
+// Event Category Card Component with clean design
+const EventCategoryCard: React.FC<{ 
+  event: { 
+    id: string; 
+    name: string; 
+    description: string; 
+    images: string[];
+    emoji: string;
+  }; 
+  index: number;
+  t: (key: string) => string;
+}> = ({ event, index, t }) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    if (isHovered && event.images.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentImageIndex((prev) => (prev + 1) % event.images.length);
+      }, 1500);
+      return () => clearInterval(interval);
+    }
+  }, [isHovered, event.images.length]);
+
+  const handleCardClick = () => {
+    window.location.href = `/events/${event.id}`;
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ 
+        duration: 0.6, 
+        delay: index * 0.1,
+      }}
+      className="group cursor-pointer"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={handleCardClick}
+      whileHover={{ 
+        y: -4,
+        transition: { duration: 0.2 }
+      }}
+    >
+      <Card className="rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 h-full bg-white border border-gray-100">
+        <div className="relative h-40 overflow-hidden">
+          {/* Sliding Images */}
+          {event.images.map((image, imgIndex) => (
+            <motion.div
+              key={imgIndex}
+              className="absolute inset-0"
+              initial={{ opacity: 0 }}
+              animate={{ 
+                opacity: imgIndex === currentImageIndex ? 1 : 0,
+                scale: imgIndex === currentImageIndex ? (isHovered ? 1.05 : 1) : 1.1
+              }}
+              transition={{ 
+                duration: 0.8, 
+                ease: "easeInOut"
+              }}
+            >
+              <img
+                src={image}
+                alt={`${event.name} ${imgIndex + 1}`}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = `https://via.placeholder.com/400x300/4F46E5/FFFFFF?text=${encodeURIComponent(event.name)}`;
+                }}
+              />
+            </motion.div>
+          ))}
+          
+          {/* Emoji Badge */}
+          <div className="absolute top-3 right-3">
+            <div className="text-xl bg-white/90 rounded-full p-2 shadow-sm">
+              {event.emoji}
+            </div>
+          </div>
+          
+          {/* Overlay Content */}
+          <div className="absolute inset-0 bg-black/20 flex items-end p-3">
+            <div className="text-white w-full">
+              <h3 className="text-base font-semibold mb-1 drop-shadow-md">
+                {t(event.name) || event.name}
+              </h3>
+              <p className="text-xs opacity-95 drop-shadow-sm line-clamp-2">
+                {t(event.description) || event.description}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <CardContent className="p-3 bg-white">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">
+              {t('exploreServices')}
+            </span>
+            <motion.div
+              whileHover={{ x: 3 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ArrowRight className="h-3 w-3 text-blue-500" />
+            </motion.div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
+
 // Image Slider Component
 const ImageSlider: React.FC<{ categories: Category[]; t: (key: string) => string }> = ({ categories, t }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Slider images with category mapping
   const sliderImages = [
     {
       id: "catering",
@@ -79,7 +191,6 @@ const ImageSlider: React.FC<{ categories: Category[]; t: (key: string) => string
     setCurrentIndex((prevIndex) => (prevIndex - 1 + sliderImages.length) % sliderImages.length);
   };
 
-  // Auto slide every 4 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % sliderImages.length);
@@ -103,7 +214,7 @@ const ImageSlider: React.FC<{ categories: Category[]; t: (key: string) => string
   };
 
   return (
-    <div className="relative w-full h-48 md:h-56 rounded-xl overflow-hidden shadow-lg bg-white">
+    <div className="relative w-full h-40 md:h-48 rounded-lg overflow-hidden shadow-sm bg-white">
       <div className="relative h-full">
         {sliderImages.map((slide, index) => (
           <div
@@ -122,39 +233,37 @@ const ImageSlider: React.FC<{ categories: Category[]; t: (key: string) => string
                 target.src = slide.fallback;
               }}
             />
-            <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
               <div className="text-center text-white">
-                <h3 className="text-2xl md:text-3xl font-bold mb-2">{slide.title}</h3>
-                <p className="text-lg md:text-xl">{slide.description}</p>
+                <h3 className="text-xl md:text-2xl font-bold mb-1">{slide.title}</h3>
+                <p className="text-sm md:text-base">{slide.description}</p>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Navigation Arrows */}
       <button
         onClick={prevSlide}
-        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 transition-all duration-200 shadow-lg"
+        className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 transition-all duration-200 shadow-sm"
       >
-        <ChevronLeft className="h-6 w-6 text-gray-800" />
+        <ChevronLeft className="h-4 w-4 text-gray-800" />
       </button>
       
       <button
         onClick={nextSlide}
-        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 transition-all duration-200 shadow-lg"
+        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 transition-all duration-200 shadow-sm"
       >
-        <ChevronRight className="h-6 w-6 text-gray-800" />
+        <ChevronRight className="h-4 w-4 text-gray-800" />
       </button>
 
-      {/* Dots Indicator */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
         {sliderImages.map((_, index) => (
           <button
             key={index}
             onClick={() => setCurrentIndex(index)}
-            className={`w-3 h-3 rounded-full transition-all duration-200 ${
-              index === currentIndex ? 'bg-white' : 'bg-white bg-opacity-50'
+            className={`w-2 h-2 rounded-full transition-all duration-200 ${
+              index === currentIndex ? 'bg-white' : 'bg-white/50'
             }`}
           />
         ))}
@@ -163,7 +272,7 @@ const ImageSlider: React.FC<{ categories: Category[]; t: (key: string) => string
   );
 };
 
-// Professional Card Component with enhanced animations
+// Professional Card Component
 const ProfessionalCard: React.FC<{ worker: Worker; index: number; t: (key: string) => string }> = ({ worker, index, t }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
@@ -183,19 +292,18 @@ const ProfessionalCard: React.FC<{ worker: Worker; index: number; t: (key: strin
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
+      transition={{ duration: 0.3, delay: index * 0.05 }}
       className="group"
     >
       <Card 
-        className="border border-gray-200 rounded-lg hover:shadow-md transition-all duration-300 bg-white"
+        className="rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-200 bg-white shadow-sm hover:shadow-md"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <CardContent className="p-4">
-          {/* Header with Avatar and Rating */}
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center text-black font-bold text-sm">
+        <CardContent className="p-3">
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-black font-medium text-xs border">
                 {worker.profile_image_url ? (
                   <img 
                     src={worker.profile_image_url} 
@@ -207,46 +315,44 @@ const ProfessionalCard: React.FC<{ worker: Worker; index: number; t: (key: strin
                 )}
               </div>
               <div>
-                <h3 className="font-semibold text-black text-sm">{worker.name}</h3>
+                <h3 className="font-medium text-black text-sm leading-tight">{worker.name}</h3>
                 <div className="flex items-center gap-1">
-                  <Star className="h-3 w-3 fill-black text-black" />
-                  <span className="text-sm font-bold text-black">{worker.rating}</span>
-                  <span className="text-xs text-gray-500">({worker.projects_completed} reviews)</span>
+                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                  <span className="text-xs font-bold text-black">{worker.rating}</span>
+                  <span className="text-xs text-gray-500">({worker.projects_completed})</span>
                 </div>
               </div>
             </div>
             <Button 
               variant="ghost" 
               size="sm"
-              className={`p-1 h-8 w-8 ${isLiked ? 'text-pink-500' : 'text-gray-400'}`}
+              className={`p-1 h-6 w-6 ${isLiked ? 'text-pink-500' : 'text-gray-400'}`}
               onClick={() => setIsLiked(!isLiked)}
             >
-              <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+              <Heart className={`h-3 w-3 ${isLiked ? 'fill-current' : ''}`} />
             </Button>
           </div>
 
-          {/* Specialization and Experience */}
-          <div className="mb-3">
-            <Badge variant="secondary" className="bg-gray-100 text-black text-xs mb-2">
+          <div className="mb-2">
+            <Badge variant="secondary" className="bg-gray-100 text-black text-xs mb-1">
               {worker.specialization}
             </Badge>
-            <div className="flex items-center gap-4 text-xs text-gray-600">
+            <div className="flex items-center gap-3 text-xs text-gray-600">
               <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3 text-gray-600" />
+                <Clock className="h-3 w-3 text-gray-500" />
                 <span>{getExperienceText(worker.experience_years)}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Users className="h-3 w-3 text-gray-600" />
-                <span>{worker.projects_completed}+ {t('projects')}</span>
+                <Users className="h-3 w-3 text-gray-500" />
+                <span>{worker.projects_completed}+</span>
               </div>
             </div>
           </div>
 
-          {/* Action Button with Radium Colors */}
           <Button 
             asChild 
             size="sm"
-            className="w-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 text-white text-xs h-8 shadow-lg hover:shadow-xl transition-all duration-300"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs h-7 transition-colors"
           >
             <Link to={`/worker/${worker.id}`}>
               {t('viewDetails')}
@@ -270,7 +376,7 @@ const CategoryProfessionals: React.FC<{
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(true);
-    }, categoryIndex * 300);
+    }, categoryIndex * 200);
     return () => clearTimeout(timer);
   }, [categoryIndex]);
 
@@ -278,22 +384,20 @@ const CategoryProfessionals: React.FC<{
 
   return (
     <motion.section
-      initial={{ opacity: 0, y: 50 }}
-      animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-      transition={{ duration: 0.6, delay: categoryIndex * 0.2 }}
-      className="py-6 bg-white"
+      initial={{ opacity: 0, y: 30 }}
+      animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+      transition={{ duration: 0.4, delay: categoryIndex * 0.1 }}
+      className="py-4 bg-white"
     >
       <div className="container mx-auto px-4">
-        {/* Category Header */}
-        <div className="text-center mb-4">
-          <h2 className="text-lg font-bold text-black">
+        <div className="text-center mb-3">
+          <h2 className="text-lg font-semibold text-black">
             {t(category.name) || category.name}
           </h2>
           <p className="text-sm text-gray-600 mt-1">{t('workers')}</p>
         </div>
 
-        {/* Professionals Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {workers.slice(0, 6).map((worker, index) => (
             <ProfessionalCard 
               key={worker.id} 
@@ -304,22 +408,21 @@ const CategoryProfessionals: React.FC<{
           ))}
         </div>
 
-        {/* View More Button */}
         {workers.length > 6 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={isVisible ? { opacity: 1 } : { opacity: 0 }}
-            transition={{ duration: 0.5, delay: categoryIndex * 0.6 + 0.4 }}
-            className="text-center mt-6"
+            transition={{ duration: 0.3, delay: categoryIndex * 0.4 + 0.2 }}
+            className="text-center mt-4"
           >
             <Button 
               asChild
               variant="outline"
-              className="border-2 border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white px-8 py-3 text-lg rounded-full transition-all duration-300 transform hover:scale-105"
+              className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-6 py-2 text-sm rounded-lg transition-colors"
             >
               <Link to={`/category/${category.id}`}>
-                {t('viewAll')} {t(category.name) || category.name} {t('professionals')}
-                <Users className="h-5 w-5 ml-2" />
+                {t('viewAll')} {t(category.name) || category.name}
+                <Users className="h-4 w-4 ml-1" />
               </Link>
             </Button>
           </motion.div>
@@ -329,9 +432,6 @@ const CategoryProfessionals: React.FC<{
   );
 };
 
-// Import motion from framer-motion
-import { motion } from "framer-motion";
-
 const Home = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredWorkers, setFeaturedWorkers] = useState<Worker[]>([]);
@@ -340,10 +440,109 @@ const Home = () => {
   const { toast } = useToast();
   const { t } = useLanguage();
 
+  // Event categories data
+  const eventCategories = [
+    {
+      id: "wedding",
+      name: "Wedding",
+      description: "Complete wedding planning services with premium vendors",
+      images: [
+        "/images/wedding/w1.png",
+        "/images/wedding/w2.png", 
+        "/images/wedding/w3.png",
+        "/images/wedding/w4.png"
+      ],
+      emoji: "💍"
+    },
+    {
+      id: "birthday",
+      name: "Birthday", 
+      description: "Memorable birthday celebrations for all ages",
+      images: [
+        "/images/birthday/b1.png",
+        "/images/birthday/b2.png",
+        "/images/birthday/b3.png",
+        "/images/birthday/b4.png"
+      ],
+      emoji: "🎂"
+    },
+    {
+      id: "haldi",
+      name: "Haldi",
+      description: "Traditional haldi ceremony with authentic rituals",
+      images: [
+        "/images/haldi/h1.png",
+        "/images/haldi/h2.png",
+        "/images/haldi/h3.png",
+        "/images/haldi/h4.png"
+      ],
+      emoji: "💛"
+    },
+    {
+      id: "corporate",
+      name: "Corporate",
+      description: "Professional corporate events and conferences",
+      images: [
+        "/images/corporate/c1.png",
+        "/images/corporate/c2.png",
+        "/images/corporate/c3.png",
+        "/images/corporate/c4.png"
+      ],
+      emoji: "💼"
+    },
+    {
+      id: "anniversary",
+      name: "Anniversary",
+      description: "Romantic anniversary celebrations",
+      images: [
+        "/images/anniversary/a1.png",
+        "/images/anniversary/a2.png",
+        "/images/anniversary/a3.png",
+        "/images/anniversary/a4.png"
+      ],
+      emoji: "🥂"
+    },
+    {
+      id: "baby-shower",
+      name: "Baby Shower",
+      description: "Joyful baby shower celebrations",
+      images: [
+        "/images/babyshower/baby1.png",
+        "/images/babyshower/baby2.png",
+        "/images/babyshower/baby3.png",
+        "/images/babyshower/baby4.png"
+      ],
+      emoji: "👶"
+    },
+    {
+      id: "engagement",
+      name: "Engagement",
+      description: "Beautiful engagement ceremony planning",
+      images: [
+        "/images/engagement/e1.png",
+        "/images/engagement/e2.png",
+        "/images/engagement/e3.png",
+        "/images/engagement/e4.png"
+      ],
+      emoji: "💕"
+    },
+    {
+      id: "reception",
+      name: "Reception",
+      description: "Grand reception party arrangements",
+      images: [
+        "/images/reception/r1.png",
+        "/images/reception/r2.png",
+        "/images/reception/r3.png",
+        "/images/reception/r4.png"
+      ],
+      emoji: "🎉"
+    }
+  ];
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch categories
         const { data: categoriesData, error: categoriesError } = await supabase
           .from("categories")
           .select("*")
@@ -352,7 +551,6 @@ const Home = () => {
         if (categoriesError) throw categoriesError;
         setCategories(categoriesData || []);
 
-        // Fetch workers with category data and enhanced fields
         const { data: workersData, error: workersError } = await supabase
           .from("workers")
           .select(`
@@ -373,18 +571,16 @@ const Home = () => {
 
         if (workersError) throw workersError;
 
-        // Transform workers data with enhanced fields
         const transformedWorkers: Worker[] = (workersData || []).map(worker => ({
           ...worker,
           category: worker.categories as Category,
           response_time: "Within 1 hour",
-          projects_completed: Math.floor(Math.random() * 200) + 50, // Random projects between 50-250
+          projects_completed: Math.floor(Math.random() * 200) + 50,
           specialization: worker.categories ? (worker.categories as Category).name : "General"
         }));
 
         setFeaturedWorkers(transformedWorkers);
 
-        // Group workers by category
         const grouped = new Map<string, Worker[]>();
         transformedWorkers.forEach(worker => {
           if (worker.category) {
@@ -411,7 +607,6 @@ const Home = () => {
     fetchData();
   }, [toast]);
 
-  // Rest of the existing code remains the same...
   const getCategoryImage = (categoryName: string) => {
     const normalizedName = categoryName.toLowerCase();
     
@@ -439,49 +634,41 @@ const Home = () => {
       id: "catering",
       name: "Catering",
       emoji: "🍽️",
-      color: "hover:bg-orange-50 border-orange-200"
     },
     {
       id: "photography", 
       name: "Photography",
       emoji: "📸",
-      color: "hover:bg-purple-50 border-purple-200"
     },
     {
       id: "venue",
       name: "Venue",
       emoji: "🏛️",
-      color: "hover:bg-green-50 border-green-200"
     },
     {
       id: "dj",
       name: "DJ & Music",
       emoji: "🎵",
-      color: "hover:bg-pink-50 border-pink-200"
     },
     {
       id: "decoration",
       name: "Decoration", 
       emoji: "🎨",
-      color: "hover:bg-yellow-50 border-yellow-200"
     },
     {
       id: "entertainment",
       name: "Entertainment",
       emoji: "🎭",
-      color: "hover:bg-indigo-50 border-indigo-200"
     },
     {
       id: "makeup",
       name: "Makeup",
       emoji: "💄",
-      color: "hover:bg-rose-50 border-rose-200"
     },
     {
       id: "planning",
       name: "Planning",
       emoji: "📋",
-      color: "hover:bg-blue-50 border-blue-200"
     }
   ];
 
@@ -493,25 +680,22 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-white">
       {/* Compact Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-2 flex items-center justify-between">
-        </div>
-
-        {/* Small Category Buttons */}
-        <div className="container mx-auto px-4 py-3">
+      <div className="bg-white border-b">
+        <div className="container mx-auto px-4 py-2">
+          {/* Small Category Buttons */}
           <div className="flex items-center justify-between overflow-x-auto space-x-1">
             {smallCategoryButtons.map((button) => (
               <Link 
                 key={button.id}
                 to={`/category/${findCategoryId(button.name)}`}
-                className="flex flex-col items-center p-2 min-w-[80px] rounded-lg border transition-all duration-200 hover:shadow-md group"
+                className="flex flex-col items-center p-2 min-w-[70px] rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-200 group"
               >
-                <div className="text-2xl mb-1 group-hover:scale-110 transition-transform duration-200">
+                <div className="text-xl mb-1">
                   {button.emoji}
                 </div>
-                <span className="text-xs font-medium text-gray-700 text-center leading-tight group-hover:text-blue-600">
+                <span className="text-xs font-medium text-gray-700 text-center leading-tight">
                   {button.name}
                 </span>
               </Link>
@@ -521,79 +705,121 @@ const Home = () => {
       </div>
 
       {/* Hero Banner with Image Slider */}
-      <section className="bg-gradient-to-r from-blue-50 to-purple-50 py-8">
+      <section className="py-4 bg-white">
         <div className="container mx-auto px-4">
           <ImageSlider categories={categories} t={t} />
         </div>
       </section>
 
-      {/* Categories Section */}
-      <section className="py-12 bg-white">
+      {/* Event Categories Section */}
+      <section className="py-6 bg-white">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="text-center mb-6"
+          >
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">
+              {t('exploreEvents') || "Explore Events"}
+            </h2>
+            <p className="text-sm text-gray-600">
+              {t('eventCategoriesDescription') || "Discover perfect services for every special occasion"}
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {eventCategories.map((event, index) => (
+              <EventCategoryCard 
+                key={event.id}
+                event={event}
+                index={index}
+                t={t}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Service Categories Section */}
+      <section className="py-6 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">
               {t('exploreServices')}
             </h2>
-            <p className="text-gray-600">
+            <p className="text-sm text-gray-600">
               {t('trustedProfessionals')}
             </p>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Card key={i} className="animate-pulse border rounded-lg">
-                  <div className="h-40 bg-gray-200 rounded-t-lg"></div>
-                  <CardContent className="p-4">
-                    <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-full"></div>
+                <Card key={i} className="animate-pulse rounded-lg border">
+                  <div className="h-32 bg-gray-200 rounded-t-lg"></div>
+                  <CardContent className="p-3">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-full"></div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categories.map((category) => (
-                <Link key={category.id} to={`/category/${category.id}`}>
-                  <Card className="group h-full border rounded-lg hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-                    <div className="relative h-40 bg-gray-100 overflow-hidden rounded-t-lg">
-                      <img
-                        src={getCategoryImage(category.name)}
-                        alt={t(category.name) || category.name}
-                        className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = `https://via.placeholder.com/400x300/3B82F6/FFFFFF?text=${encodeURIComponent(t(category.name) || category.name)}`;
-                        }}
-                      />
-                      <div className="absolute top-2 right-2">
-                        <Badge className="bg-white/90 backdrop-blur-sm">
-                          {category.name.includes("DJ") ? "🎵" : 
-                           category.name.includes("Catering") ? "🍽️" :
-                           category.name.includes("Photography") ? "📸" :
-                           category.name.includes("Decoration") ? "🎨" :
-                           category.name.includes("Venue") ? "🏛️" : "⭐"}
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    <CardContent className="p-4">
-                      <CardTitle className="text-lg font-semibold text-gray-800 mb-2">
-                        {t(category.name) || category.name}
-                      </CardTitle>
-                      <CardDescription className="text-sm text-gray-600 line-clamp-2">
-                        {category.description}
-                      </CardDescription>
-                      <div className="flex items-center justify-between mt-3">
-                        <div className="flex items-center gap-1 text-xs text-gray-500">
-                          <Users className="h-3 w-3" />
-                          <span>{t('experiencedProfessionals')}</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {categories.map((category, index) => (
+                <motion.div
+                  key={category.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ 
+                    duration: 0.4, 
+                    delay: index * 0.1,
+                  }}
+                  whileHover={{ y: -2 }}
+                >
+                  <Link to={`/category/${category.id}`}>
+                    <Card className="group h-full rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md">
+                      <div className="relative h-32 overflow-hidden rounded-t-lg">
+                        <img
+                          src={getCategoryImage(category.name)}
+                          alt={t(category.name) || category.name}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = `https://via.placeholder.com/400x300/3B82F6/FFFFFF?text=${encodeURIComponent(t(category.name) || category.name)}`;
+                          }}
+                        />
+                        
+                        <div className="absolute top-2 right-2">
+                          <Badge className="bg-white/95 text-gray-700 text-xs">
+                            {category.name.includes("DJ") ? "🎵" : 
+                             category.name.includes("Catering") ? "🍽️" :
+                             category.name.includes("Photography") ? "📸" :
+                             category.name.includes("Decoration") ? "🎨" :
+                             category.name.includes("Venue") ? "🏛️" : "⭐"}
+                          </Badge>
                         </div>
-                        <ArrowRight className="h-4 w-4 text-blue-500 transform group-hover:translate-x-1 transition-transform" />
                       </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                      
+                      <CardContent className="p-3">
+                        <CardTitle className="text-base font-semibold text-gray-800 mb-1">
+                          {t(category.name) || category.name}
+                        </CardTitle>
+                        <CardDescription className="text-sm text-gray-600 line-clamp-2 mb-2">
+                          {category.description}
+                        </CardDescription>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1 text-xs text-gray-500">
+                            <Users className="h-3 w-3" />
+                            <span>{t('experiencedProfessionals')}</span>
+                          </div>
+                          <ArrowRight className="h-3 w-3 text-blue-500" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </motion.div>
               ))}
             </div>
           )}
