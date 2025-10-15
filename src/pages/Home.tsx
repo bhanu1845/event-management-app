@@ -8,6 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Star, Users, Award, Clock, Sparkles, Search, Calendar, Heart, ArrowRight, ShoppingCart, User, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
+import "@/styles/Home.css";
+import "@/styles/ServiceCategories.css";
+import "@/styles/ProfessionalCards.css";
 
 interface Category {
   id: string;
@@ -147,39 +150,60 @@ const ImageSlider: React.FC<{ categories: Category[]; t: (key: string) => string
 
   const sliderImages = [
     {
-      id: "catering",
-      image: "/images/catring.jpg",
-      title: t('cateringServices'),
-      description: t('cateringDescription'),
-      fallback: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&h=400&fit=crop"
+      id: "wedding",
+      image: "/images/wedding/w1.png",
+      title: t('weddingTitle') || 'Wedding Ceremonies',
+      description: t('weddingQuote') || 'Two hearts, one soul, endless love 💍',
+      fallback: "https://images.unsplash.com/photo-1519741497674-611481863552?w=800&h=400&fit=crop"
     },
     {
-      id: "photography", 
-      image: "/images/photography.jpg",
-      title: t('photographyServices'),
-      description: t('photographyDescription'),
-      fallback: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?w=800&h=400&fit=crop"
+      id: "birthday", 
+      image: "/images/birthday/b1.png",
+      title: t('birthdayTitle') || 'Birthday Celebrations',
+      description: t('birthdayQuote') || 'Another year of blessings and joy 🎂',
+      fallback: "https://images.unsplash.com/photo-1558636508-e0db3814bd1d?w=800&h=400&fit=crop"
     },
     {
-      id: "dj",
-      image: "/images/dj.jpg", 
-      title: t('musicDjServices'),
-      description: t('musicDjDescription'),
-      fallback: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=400&fit=crop"
+      id: "engagement",
+      image: "/images/engagement/e2.png", 
+      title: t('engagementTitle') || 'Engagement Ceremonies',
+      description: t('engagementQuote') || 'The beginning of forever starts here 💕',
+      fallback: "https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=800&h=400&fit=crop"
     },
     {
-      id: "venue",
-      image: "/images/venue.jpg",
-      title: t('decorationServices'), 
-      description: t('decorationDescription'),
-      fallback: "https://images.unsplash.com/photo-1519167758481-83f29b1fe26d?w=800&h=400&fit=crop"
-    },
-    {
-      id: "decoration",
-      image: "/images/decoration.jpg",
-      title: t('decorationServices'),
-      description: t('decorationDescription'), 
+      id: "anniversary",
+      image: "/images/anniversary/a2.png",
+      title: t('anniversaryTitle') || 'Anniversary Celebrations', 
+      description: t('anniversaryQuote') || 'Years of love, memories to treasure 🥂',
       fallback: "https://images.unsplash.com/photo-1464207687429-7505649dae38?w=800&h=400&fit=crop"
+    },
+    {
+      id: "haldi",
+      image: "/images/haldi/h2.png",
+      title: t('haldiTitle') || 'Haldi Ceremonies',
+      description: t('haldiQuote') || 'Golden traditions, blessed beginnings 💛', 
+      fallback: "https://images.unsplash.com/photo-1594736797933-d0813ba00f30?w=800&h=400&fit=crop"
+    },
+    {
+      id: "corporate",
+      image: "/images/corporate/c1.png",
+      title: t('corporateTitle') || 'Corporate Events',
+      description: t('corporateQuote') || 'Success celebrates with style 💼',
+      fallback: "https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&h=400&fit=crop"
+    },
+    {
+      id: "babyshower",
+      image: "/images/babyshower/baby1.png",
+      title: t('babyshowerTitle') || 'Baby Shower',
+      description: t('babyshowerQuote') || 'Little miracles bring big joy 👶',
+      fallback: "https://images.unsplash.com/photo-1566004100631-35d015d6a491?w=800&h=400&fit=crop"
+    },
+    {
+      id: "reception",
+      image: "/images/reception/r1.png",
+      title: t('receptionTitle') || 'Reception Parties',
+      description: t('receptionQuote') || 'Dance, dine, and celebrate life 🎉',
+      fallback: "https://images.unsplash.com/photo-1519167758481-83f29b1fe26d?w=800&h=400&fit=crop"
     }
   ];
 
@@ -199,17 +223,42 @@ const ImageSlider: React.FC<{ categories: Category[]; t: (key: string) => string
   }, [sliderImages.length]);
 
   const handleImageClick = (slideId: string) => {
-    const matchingCategory = categories.find(cat => 
-      cat.name.toLowerCase().includes(slideId.toLowerCase()) ||
-      (slideId === "catering" && cat.name.toLowerCase().includes("catering")) ||
-      (slideId === "photography" && cat.name.toLowerCase().includes("photography")) ||
-      (slideId === "dj" && (cat.name.toLowerCase().includes("dj") || cat.name.toLowerCase().includes("music"))) ||
-      (slideId === "venue" && cat.name.toLowerCase().includes("venue")) ||
-      (slideId === "decoration" && cat.name.toLowerCase().includes("decoration"))
-    );
-    
-    if (matchingCategory) {
-      window.location.href = `/category/${matchingCategory.id}`;
+    // Navigate to specific event pages
+    switch(slideId) {
+      case "wedding":
+        window.location.href = `/events/wedding`;
+        break;
+      case "birthday":
+        window.location.href = `/events/birthday`;
+        break;
+      case "engagement":
+        window.location.href = `/events/engagement`;
+        break;
+      case "anniversary":
+        window.location.href = `/events/anniversary`;
+        break;
+      case "haldi":
+        window.location.href = `/events/haldi`;
+        break;
+      case "corporate":
+        window.location.href = `/events/corporate`;
+        break;
+      case "babyshower":
+        window.location.href = `/events/babyshower`;
+        break;
+      case "reception":
+        window.location.href = `/events/reception`;
+        break;
+      default: {
+        // Fallback to category search if no matching event page
+        const matchingCategory = categories.find(cat => 
+          cat.name.toLowerCase().includes(slideId.toLowerCase())
+        );
+        if (matchingCategory) {
+          window.location.href = `/category/${matchingCategory.id}`;
+        }
+        break;
+      }
     }
   };
 
@@ -503,7 +552,7 @@ const Home = () => {
       emoji: "🥂"
     },
     {
-      id: "baby-shower",
+      id: "babyshower",
       name: "Baby Shower",
       description: "Joyful baby shower celebrations",
       images: [

@@ -1,0 +1,101 @@
+/* CorporatePage.css - Corporate events page specific styles */
+
+.corporate-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #eff6ff, #f3f4f6);
+}
+
+.corporate-hero {
+  position: relative;
+  height: 24rem;
+  background: linear-gradient(135deg, #2563eb, #374151);
+  color: white;
+}
+
+.corporate-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+.corporate-hero-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 2rem;
+}
+
+.corporate-service-card {
+  height: 100%;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.corporate-service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.1), 0 10px 10px -5px rgba(37, 99, 235, 0.04);
+}
+
+.corporate-icon-wrapper {
+  padding: 0.5rem;
+  background-color: #dbeafe;
+  border-radius: 8px;
+  color: #2563eb;
+}
+
+.corporate-price-badge {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.corporate-book-btn {
+  background-color: #2563eb;
+}
+
+.corporate-book-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.corporate-gallery-item {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+.corporate-gallery-item:hover {
+  transform: scale(1.02);
+}
+
+.corporate-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.corporate-gallery-item:hover img {
+  transform: scale(1.1);
+}
+
+.corporate-cta {
+  background: linear-gradient(135deg, #2563eb, #374151);
+  color: white;
+  padding: 4rem 1rem;
+  text-align: center;
+}
+
+.corporate-cta-btn {
+  background-color: white;
+  color: #2563eb;
+}
+
+.corporate-cta-btn:hover {
+  background-color: #f3f4f6;
+}
