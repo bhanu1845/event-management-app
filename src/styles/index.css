@@ -1,0 +1,281 @@
+/* styles/index.css - Main styles entry point */
+
+/* Import all component-specific CSS files */
+@import './Home.css';
+@import './ServiceCategories.css';
+@import './ProfessionalCards.css';
+@import './Navbar.css';
+@import './Footer.css';
+@import './AddWorker.css';
+@import './Auth.css';
+@import './WorkerProfile.css';
+@import './CartPage.css';
+@import './EventPages.css';
+
+/* Import individual event page CSS files */
+@import './WeddingPage.css';
+@import './BirthdayPage.css';
+@import './EngagementPage.css';
+@import './AnniversaryPage.css';
+@import './HaldiPage.css';
+@import './CorporatePage.css';
+@import './BabyShowerPage.css';
+@import './ReceptionPage.css';
+
+/* Global utility classes that complement Tailwind */
+
+/* Animation utilities */
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.5s ease-out;
+}
+
+.slide-in-right {
+  animation: slideInRight 0.5s ease-out;
+}
+
+.bounce-in {
+  animation: bounceIn 0.8s ease-out;
+}
+
+.scale-in {
+  animation: scaleIn 0.3s ease-out;
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Gradient utilities */
+.gradient-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gradient-secondary {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.gradient-tertiary {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.gradient-success {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.gradient-warning {
+  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+}
+
+.gradient-danger {
+  background: linear-gradient(135deg, #ff8a80 0%, #ea4c89 100%);
+}
+
+/* Text gradients */
+.text-gradient-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-secondary {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Shadow utilities */
+.shadow-soft {
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+}
+
+.shadow-medium {
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.12);
+}
+
+.shadow-hard {
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.shadow-colored-primary {
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.25);
+}
+
+.shadow-colored-secondary {
+  box-shadow: 0 8px 32px rgba(240, 147, 251, 0.25);
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Hover effects */
+.hover-lift {
+  transition: transform 0.2s ease-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+}
+
+.hover-scale {
+  transition: transform 0.2s ease-out;
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+.hover-glow {
+  transition: box-shadow 0.2s ease-out;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+}
+
+/* Loading states */
+.loading-skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Responsive utilities */
+.responsive-text {
+  font-size: clamp(1rem, 2.5vw, 2rem);
+}
+
+.responsive-spacing {
+  padding: clamp(1rem, 4vw, 3rem);
+}
+
+/* Focus states */
+.focus-visible-primary:focus-visible {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+.focus-visible-secondary:focus-visible {
+  outline: 2px solid #f093fb;
+  outline-offset: 2px;
+}
+
+/* Accessibility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

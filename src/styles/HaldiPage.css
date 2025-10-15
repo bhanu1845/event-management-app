@@ -1,0 +1,101 @@
+/* HaldiPage.css - Haldi ceremony page specific styles */
+
+.haldi-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fefce8, #fef3c7);
+}
+
+.haldi-hero {
+  position: relative;
+  height: 24rem;
+  background: linear-gradient(135deg, #ca8a04, #d97706);
+  color: white;
+}
+
+.haldi-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+.haldi-hero-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 2rem;
+}
+
+.haldi-service-card {
+  height: 100%;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.haldi-service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(202, 138, 4, 0.1), 0 10px 10px -5px rgba(202, 138, 4, 0.04);
+}
+
+.haldi-icon-wrapper {
+  padding: 0.5rem;
+  background-color: #fefce8;
+  border-radius: 8px;
+  color: #ca8a04;
+}
+
+.haldi-price-badge {
+  background-color: #fefce8;
+  color: #a16207;
+}
+
+.haldi-book-btn {
+  background-color: #ca8a04;
+}
+
+.haldi-book-btn:hover {
+  background-color: #a16207;
+}
+
+.haldi-gallery-item {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+.haldi-gallery-item:hover {
+  transform: scale(1.02);
+}
+
+.haldi-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.haldi-gallery-item:hover img {
+  transform: scale(1.1);
+}
+
+.haldi-cta {
+  background: linear-gradient(135deg, #ca8a04, #d97706);
+  color: white;
+  padding: 4rem 1rem;
+  text-align: center;
+}
+
+.haldi-cta-btn {
+  background-color: white;
+  color: #ca8a04;
+}
+
+.haldi-cta-btn:hover {
+  background-color: #f3f4f6;
+}

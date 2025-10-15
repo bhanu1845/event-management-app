@@ -1,0 +1,101 @@
+/* BabyShowerPage.css - Baby shower page specific styles */
+
+.babyshower-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #eff6ff, #fdf2f8);
+}
+
+.babyshower-hero {
+  position: relative;
+  height: 24rem;
+  background: linear-gradient(135deg, #3b82f6, #ec4899);
+  color: white;
+}
+
+.babyshower-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+.babyshower-hero-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 2rem;
+}
+
+.babyshower-service-card {
+  height: 100%;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.babyshower-service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.1), 0 10px 10px -5px rgba(59, 130, 246, 0.04);
+}
+
+.babyshower-icon-wrapper {
+  padding: 0.5rem;
+  background-color: #dbeafe;
+  border-radius: 8px;
+  color: #3b82f6;
+}
+
+.babyshower-price-badge {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.babyshower-book-btn {
+  background-color: #3b82f6;
+}
+
+.babyshower-book-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.babyshower-gallery-item {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+.babyshower-gallery-item:hover {
+  transform: scale(1.02);
+}
+
+.babyshower-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.babyshower-gallery-item:hover img {
+  transform: scale(1.1);
+}
+
+.babyshower-cta {
+  background: linear-gradient(135deg, #3b82f6, #ec4899);
+  color: white;
+  padding: 4rem 1rem;
+  text-align: center;
+}
+
+.babyshower-cta-btn {
+  background-color: white;
+  color: #3b82f6;
+}
+
+.babyshower-cta-btn:hover {
+  background-color: #f3f4f6;
+}

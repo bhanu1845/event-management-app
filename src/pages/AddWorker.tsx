@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Upload, X, Plus, Camera, Image as ImageIcon } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
+import "@/styles/AddWorker.css";
 
 interface Category {
   id: string;

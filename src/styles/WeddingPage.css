@@ -1,0 +1,101 @@
+/* WeddingPage.css - Wedding page specific styles */
+
+.wedding-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fdf2f8, #fae8ff);
+}
+
+.wedding-hero {
+  position: relative;
+  height: 24rem;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  color: white;
+}
+
+.wedding-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+.wedding-hero-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 2rem;
+}
+
+.wedding-service-card {
+  height: 100%;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.wedding-service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(236, 72, 153, 0.1), 0 10px 10px -5px rgba(236, 72, 153, 0.04);
+}
+
+.wedding-icon-wrapper {
+  padding: 0.5rem;
+  background-color: #fdf2f8;
+  border-radius: 8px;
+  color: #ec4899;
+}
+
+.wedding-price-badge {
+  background-color: #fdf2f8;
+  color: #be185d;
+}
+
+.wedding-book-btn {
+  background-color: #ec4899;
+}
+
+.wedding-book-btn:hover {
+  background-color: #be185d;
+}
+
+.wedding-gallery-item {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+.wedding-gallery-item:hover {
+  transform: scale(1.02);
+}
+
+.wedding-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.wedding-gallery-item:hover img {
+  transform: scale(1.1);
+}
+
+.wedding-cta {
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  color: white;
+  padding: 4rem 1rem;
+  text-align: center;
+}
+
+.wedding-cta-btn {
+  background-color: white;
+  color: #ec4899;
+}
+
+.wedding-cta-btn:hover {
+  background-color: #f3f4f6;
+}

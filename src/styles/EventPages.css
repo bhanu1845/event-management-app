@@ -1,0 +1,114 @@
+/* Event Pages Common Styles */
+.event-page-hero {
+  position: relative;
+  height: 24rem;
+  overflow: hidden;
+}
+
+.event-page-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0,0,0,0.3), rgba(0,0,0,0.1));
+  z-index: 1;
+}
+
+.event-hero-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 2rem;
+}
+
+.event-service-card {
+  transition: all 0.3s ease;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+}
+
+.event-service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-color: #d1d5db;
+}
+
+.service-icon-wrapper {
+  padding: 0.5rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .gallery-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.gallery-item {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+}
+
+.gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.gallery-item:hover img {
+  transform: scale(1.1);
+}
+
+.event-cta {
+  text-align: center;
+  padding: 4rem 1rem;
+  color: white;
+}
+
+.gradient-wedding {
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+}
+
+.gradient-birthday {
+  background: linear-gradient(135deg, #eab308, #f97316);
+}
+
+.gradient-engagement {
+  background: linear-gradient(135deg, #ec4899, #ef4444);
+}
+
+.gradient-anniversary {
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+}
+
+.gradient-haldi {
+  background: linear-gradient(135deg, #ca8a04, #d97706);
+}
+
+.gradient-corporate {
+  background: linear-gradient(135deg, #2563eb, #374151);
+}
+
+.gradient-babyshower {
+  background: linear-gradient(135deg, #3b82f6, #ec4899);
+}
+
+.gradient-reception {
+  background: linear-gradient(135deg, #8b5cf6, #eab308);
+}

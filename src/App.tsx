@@ -28,6 +28,16 @@ import SearchResults from "@/pages/SearchResults";
 import NotFound from "./pages/NotFound";
 import CartPage from "./pages/CartPage";
 
+// Event page imports
+import WeddingPage from "./pages/WeddingPage";
+import BirthdayPage from "./pages/BirthdayPage";
+import EngagementPage from "./pages/EngagementPage";
+import AnniversaryPage from "./pages/AnniversaryPage";
+import HaldiPage from "./pages/HaldiPage";
+import CorporatePage from "./pages/CorporatePage";
+import BabyShowerPage from "./pages/BabyShowerPage";
+import ReceptionPage from "./pages/ReceptionPage";
+
 const queryClient = new QueryClient();
 
 function App() {
@@ -75,9 +85,17 @@ function App() {
                   <Route path="/about" element={<About />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/search" element={<SearchResults />} />
-                
-                  
                   <Route path="/cart" element={<CartPage />} />
+
+                  {/* Event Pages */}
+                  <Route path="/events/wedding" element={<WeddingPage />} />
+                  <Route path="/events/birthday" element={<BirthdayPage />} />
+                  <Route path="/events/engagement" element={<EngagementPage />} />
+                  <Route path="/events/anniversary" element={<AnniversaryPage />} />
+                  <Route path="/events/haldi" element={<HaldiPage />} />
+                  <Route path="/events/corporate" element={<CorporatePage />} />
+                  <Route path="/events/babyshower" element={<BabyShowerPage />} />
+                  <Route path="/events/reception" element={<ReceptionPage />} />
 
                   {/* Catch-all for 404 */}
                   <Route path="*" element={<NotFound />} />
