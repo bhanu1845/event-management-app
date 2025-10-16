@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -481,6 +481,303 @@ const CategoryProfessionals: React.FC<{
   );
 };
 
+// Horizontal Scrolling Card Component
+const HorizontalScrollingCard: React.FC<{ 
+  service: { 
+    id: string;
+    name: string;
+    description: string;
+    image: string;
+    rating: number;
+    projects: number;
+    emoji: string;
+    price: string;
+  }; 
+  index: number;
+  t: (key: string) => string;
+}> = ({ service, index, t }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ 
+        duration: 0.5, 
+        delay: index * 0.1,
+        type: "spring",
+        stiffness: 100
+      }}
+      whileHover={{ 
+        scale: 1.05,
+        rotateY: 5,
+        transition: { duration: 0.2 }
+      }}
+      className="flex-shrink-0 w-48 bg-white rounded-2xl shadow-lg hover:shadow-xl border border-gray-100 overflow-hidden cursor-pointer transform-style-preserve-3d"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="relative h-32 overflow-hidden">
+        <motion.img
+          src={service.image}
+          alt={service.name}
+          className="w-full h-full object-cover"
+          animate={{
+            scale: isHovered ? 1.1 : 1
+          }}
+          transition={{ duration: 0.3 }}
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = `https://via.placeholder.com/200x150/4F46E5/FFFFFF?text=${encodeURIComponent(service.name)}`;
+          }}
+        />
+        
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        
+        {/* Emoji Badge */}
+        <motion.div 
+          className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 shadow-lg"
+          whileHover={{ scale: 1.2, rotate: 360 }}
+          transition={{ duration: 0.3 }}
+        >
+          <span className="text-sm">{service.emoji}</span>
+        </motion.div>
+        
+        {/* Price Tag */}
+        <motion.div 
+          className="absolute bottom-2 left-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg"
+          initial={{ x: -50 }}
+          animate={{ x: 0 }}
+          transition={{ delay: index * 0.1 + 0.5 }}
+        >
+          {service.price}
+        </motion.div>
+      </div>
+      
+      <div className="p-3">
+        <h3 className="font-semibold text-sm text-gray-800 mb-1 line-clamp-1">
+          {service.name}
+        </h3>
+        <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+          {service.description}
+        </p>
+        
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+            <span className="text-xs font-bold text-gray-700">{service.rating}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Users className="h-3 w-3 text-gray-500" />
+            <span className="text-xs text-gray-600">{service.projects}+</span>
+          </div>
+        </div>
+        
+        <motion.div
+          className="mt-2 pt-2 border-t border-gray-100"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: isHovered ? 1 : 0.7 }}
+        >
+          <Button 
+            size="sm" 
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs h-6"
+          >
+            Book Now
+          </Button>
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+};
+
+// Horizontal Scrolling Container Component
+const HorizontalScrollingContainer: React.FC<{ t: (key: string) => string }> = ({ t }) => {
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  const featuredServices = [
+    {
+      id: "premium-catering",
+      name: "Premium Catering",
+      description: "Gourmet food with traditional flavors",
+      image: "/images/catring.jpg",
+      rating: 4.9,
+      projects: 234,
+      emoji: "🍽️",
+      price: "₹15K"
+    },
+    {
+      id: "wedding-photography",
+      name: "Wedding Photography",
+      description: "Capture your special moments beautifully",
+      image: "/images/photography.jpg",
+      rating: 4.8,
+      projects: 189,
+      emoji: "📸",
+      price: "₹25K"
+    },
+    {
+      id: "luxury-venue",
+      name: "Luxury Venue",
+      description: "Elegant spaces for grand celebrations",
+      image: "/images/venue.jpg",
+      rating: 4.7,
+      projects: 156,
+      emoji: "🏛️",
+      price: "₹50K"
+    },
+    {
+      id: "dj-entertainment",
+      name: "DJ & Entertainment",
+      description: "Keep the party alive with great music",
+      image: "/images/dj.jpg",
+      rating: 4.6,
+      projects: 142,
+      emoji: "🎵",
+      price: "₹12K"
+    },
+    {
+      id: "floral-decoration",
+      name: "Floral Decoration",
+      description: "Beautiful floral arrangements",
+      image: "/images/decoration.jpg",
+      rating: 4.9,
+      projects: 198,
+      emoji: "💐",
+      price: "₹18K"
+    },
+    {
+      id: "makeup-artist",
+      name: "Makeup Artist",
+      description: "Professional bridal makeup services",
+      image: "/images/makeup.jpg",
+      rating: 4.8,
+      projects: 167,
+      emoji: "💄",
+      price: "₹8K"
+    },
+    {
+      id: "event-planning",
+      name: "Event Planning",
+      description: "Complete event management solutions",
+      image: "/images/planning.jpg",
+      rating: 4.7,
+      projects: 213,
+      emoji: "📋",
+      price: "₹30K"
+    },
+    {
+      id: "lighting-specialist",
+      name: "Lighting Specialist",
+      description: "Create magical atmospheres with lights",
+      image: "/images/lighting.jpg",
+      rating: 4.5,
+      projects: 98,
+      emoji: "💡",
+      price: "₹10K"
+    }
+  ];
+
+  const scrollLeft = () => {
+    if (containerRef.current) {
+      containerRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (containerRef.current) {
+      containerRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+    }
+  };
+
+  const handleScroll = () => {
+    if (containerRef.current) {
+      setScrollPosition(containerRef.current.scrollLeft);
+    }
+  };
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
+
+  return (
+    <section className="py-8 bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="container mx-auto px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-8"
+        >
+          <h2 className="text-2xl font-bold text-gray-800 mb-3">
+            {t('featuredServices') || "Featured Services"}
+          </h2>
+          <p className="text-sm text-gray-600 max-w-md mx-auto">
+            {t('discoverTopServices') || "Handpicked services for your perfect event experience"}
+          </p>
+        </motion.div>
+
+        {/* Scroll Container */}
+        <div className="relative">
+          {/* Scroll Left Button */}
+          <motion.button
+            onClick={scrollLeft}
+            className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/90 hover:bg-white rounded-full p-3 shadow-lg border border-gray-200 backdrop-blur-sm"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <ChevronLeft className="h-5 w-5 text-gray-700" />
+          </motion.button>
+
+          {/* Scroll Right Button */}
+          <motion.button
+            onClick={scrollRight}
+            className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/90 hover:bg-white rounded-full p-3 shadow-lg border border-gray-200 backdrop-blur-sm"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <ChevronRight className="h-5 w-5 text-gray-700" />
+          </motion.button>
+
+          {/* Horizontal Scrolling Container */}
+          <div
+            ref={containerRef}
+            className="flex space-x-4 overflow-x-auto scrollbar-hide scroll-smooth py-4 px-2"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {featuredServices.map((service, index) => (
+              <HorizontalScrollingCard
+                key={service.id}
+                service={service}
+                index={index}
+                t={t}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Scroll Indicators */}
+        <div className="flex justify-center mt-6 space-x-2">
+          {featuredServices.map((_, index) => (
+            <motion.div
+              key={index}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                Math.floor(scrollPosition / 200) === index ? 'bg-blue-600 w-4' : 'bg-gray-300'
+              }`}
+              whileHover={{ scale: 1.2 }}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const Home = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredWorkers, setFeaturedWorkers] = useState<Worker[]>([]);
@@ -759,6 +1056,9 @@ const Home = () => {
           <ImageSlider categories={categories} t={t} />
         </div>
       </section>
+
+      {/* Animated Horizontal Scrolling Cards Section */}
+      <HorizontalScrollingContainer t={t} />
 
       {/* Event Categories Section */}
       <section className="py-6 bg-white">
