@@ -106,6 +106,34 @@ INSERT INTO public.categories (name, description, image_url) VALUES
   ('Venue Management', 'Complete venue setup and management', '/placeholder.svg'),
   ('Entertainment', 'Live bands, dancers, and entertainers', '/placeholder.svg');
 
+-- Profiles table
+CREATE TABLE profiles (
+  id UUID REFERENCES auth.users PRIMARY KEY,
+  full_name TEXT,
+  email TEXT,
+  phone TEXT,
+  address TEXT,
+  profile_image_url TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Orders table
+CREATE TABLE orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users,
+  worker_id UUID REFERENCES workers(id),
+  service_type TEXT,
+  event_date TIMESTAMP,
+  status TEXT DEFAULT 'pending',
+  total_amount DECIMAL,
+  customer_name TEXT,
+  customer_phone TEXT,
+  customer_address TEXT,
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
 -- Create bookings table
 CREATE TABLE IF NOT EXISTS public.bookings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

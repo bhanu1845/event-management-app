@@ -21,6 +21,7 @@ import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Category from "./pages/Category";
 import WorkerProfile from "./pages/WorkerProfile";
+import UserProfile from "./pages/UserProfile";
 import AddWorker from "./pages/AddWorker";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -81,6 +82,7 @@ function App() {
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/category/:categoryId" element={<Category />} />
                   <Route path="/worker/:workerId" element={<WorkerProfile />} />
+                  <Route path="/profile" element={<UserProfile />} />
                   <Route path="/add-worker" element={<AddWorker />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/contact" element={<Contact />} />
