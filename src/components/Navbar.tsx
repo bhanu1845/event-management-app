@@ -333,13 +333,6 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
             </Link>
             
             <Link 
-              to="/" 
-              className="flex-shrink-0 text-sm font-medium text-white hover:text-blue-200 transition-colors whitespace-nowrap"
-            >
-              {t('allServices')}
-            </Link>
-            
-            <Link 
               to="/category/photography" 
               className="flex-shrink-0 text-sm font-medium text-white hover:text-blue-200 transition-colors whitespace-nowrap"
             >
