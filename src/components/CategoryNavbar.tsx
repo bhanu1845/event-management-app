@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/hooks/useLanguage";
 
 interface Category {
@@ -18,13 +17,16 @@ const CategoryNavbar: React.FC = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const { data, error } = await supabase
-          .from("categories")
-          .select("id, name, description, image_url")
-          .order("name");
+        // Static categories data
+        const staticCategories: Category[] = [
+          { id: "photography", name: "Photography", description: "Professional photography services", image_url: "/images/photography.jpg" },
+          { id: "catering", name: "Catering", description: "Catering services", image_url: "/images/catring.jpg" },
+          { id: "decoration", name: "Decoration", description: "Decoration services", image_url: "/images/decoration.jpg" },
+          { id: "music", name: "DJ & Music", description: "Music services", image_url: "/images/dj.jpg" },
+          { id: "venue", name: "Venue", description: "Venue services", image_url: "/images/venue.jpg" },
+        ];
         
-        if (error) throw error;
-        setCategories((data as Category[]) || []);
+        setCategories(staticCategories);
       } catch (err) {
         console.error("Failed to load categories", err);
       } finally {

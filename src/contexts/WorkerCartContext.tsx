@@ -2,72 +2,39 @@
 
 import React, { useState, useEffect, ReactNode } from 'react';
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
+
 import { getCart, addToCart as addToUserCart, removeFromCart as removeFromUserCart, clearCart as clearUserCart } from "@/lib/cartUtils";
 import { WorkerCartContext, type CartItem, type WorkerCartContextType } from './WorkerCartContextDefinition';
 
+const GUEST_USER_ID = 'guest';
+
 export const WorkerCartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
 
-  // Check user authentication and load their cart
+  // Load guest user cart
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      const currentUser = data?.session?.user ?? null;
-      setUser(currentUser);
-      
-      if (currentUser) {
-        const userCart = getCart(currentUser.id);
-        setCart(userCart);
-      } else {
-        setCart([]);
-      }
+    const loadGuestCart = () => {
+      const guestCart = getCart(GUEST_USER_ID);
+      setCart(guestCart);
     };
 
-    checkAuth();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const newUser = session?.user ?? null;
-      setUser(newUser);
-      
-      if (newUser) {
-        const userCart = getCart(newUser.id);
-        setCart(userCart);
-      } else {
-        setCart([]);
-      }
-    });
+    loadGuestCart();
 
     // Listen for cart updates
     const handleCartUpdate = () => {
-      if (user) {
-        const userCart = getCart(user.id);
-        setCart(userCart);
-      }
+      const guestCart = getCart(GUEST_USER_ID);
+      setCart(guestCart);
     };
 
     window.addEventListener("cartUpdated", handleCartUpdate);
 
     return () => {
       window.removeEventListener("cartUpdated", handleCartUpdate);
-      subscription?.unsubscribe();
     };
-  }, [user]);
+  }, []);
 
   const addToCart = (worker: CartItem) => {
-    if (!user) {
-      toast({
-        title: "Please Sign In",
-        description: "You need to sign in to add workers to your cart.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       const cartItem = {
         id: worker.id,
@@ -78,8 +45,8 @@ export const WorkerCartProvider: React.FC<{ children: ReactNode }> = ({ children
         price: worker.price,
       };
       
-      addToUserCart(user.id, cartItem);
-      const updatedCart = getCart(user.id);
+      addToUserCart(GUEST_USER_ID, cartItem);
+      const updatedCart = getCart(GUEST_USER_ID);
       setCart(updatedCart);
       
       toast({
@@ -95,10 +62,8 @@ export const WorkerCartProvider: React.FC<{ children: ReactNode }> = ({ children
   };
 
   const removeFromCart = (workerId: string) => {
-    if (!user) return;
-    
-    removeFromUserCart(user.id, workerId);
-    const updatedCart = getCart(user.id);
+    removeFromUserCart(GUEST_USER_ID, workerId);
+    const updatedCart = getCart(GUEST_USER_ID);
     setCart(updatedCart);
     
     toast({
@@ -108,9 +73,7 @@ export const WorkerCartProvider: React.FC<{ children: ReactNode }> = ({ children
   };
 
   const clearCart = () => {
-    if (!user) return;
-    
-    clearUserCart(user.id);
+    clearUserCart(GUEST_USER_ID);
     setCart([]);
   };
 

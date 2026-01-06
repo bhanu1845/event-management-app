@@ -1,43 +1,41 @@
 import React, { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, Search, ShoppingCart, User as UserIcon } from "lucide-react";
+import { Menu, X, Search, ShoppingCart, User as UserIcon, LogOut, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { supabase } from "@/integrations/supabase/client";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+
 import { useToast } from "@/hooks/use-toast";
+import { authService, type User } from "@/lib/authService";
 import "@/styles/Navbar.css";
 import { useLanguage } from "@/hooks/useLanguage";
-import type { User } from "@supabase/supabase-js";
 
-interface NavbarProps {
-  user: User | null;
-}
-
-const Navbar: React.FC<NavbarProps> = ({ user }) => {
+const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [cartCount, setCartCount] = useState(0);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const navigate = useNavigate();
   const { toast: showToast } = useToast();
   const { currentLanguage: selectedLanguage, setLanguage: setSelectedLanguage, t } = useLanguage();
 
+  // Check authentication status on component mount
+  useEffect(() => {
+    const user = authService.getCurrentUser();
+    setCurrentUser(user);
+  }, []);
+
   /**
-   * Cart Count Synchronization Logic - User-specific cart
-   * Only shows cart for logged-in users, each user has separate cart data
+   * Cart Count Synchronization Logic
    */
   useEffect(() => {
     const updateCartCount = () => {
-      if (!user) {
-        setCartCount(0);
-        return;
-      }
-      
       try {
-        const cartKey = `cart_${user.id}`; // User-specific cart key
-        const raw = localStorage.getItem(cartKey) || "[]";
+        const cartKey = currentUser ? `cart_${currentUser.id}` : 'cart_guest';
+        const raw = localStorage.getItem(cartKey) || '[]';
         const cart = JSON.parse(raw);
         setCartCount(Array.isArray(cart) ? cart.length : 0);
       } catch {
@@ -48,40 +46,38 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
     // 1. Initial load
     updateCartCount();
     
-    // 2. Listen for custom event from other components (like WorkerProfile)
-    window.addEventListener("cartUpdated", updateCartCount); 
+    // 2. Listen for custom event from other components
+    window.addEventListener('cartUpdated', updateCartCount); 
     
     // 3. Listen for changes in localStorage from other tabs/windows
     const onStorage = (e: StorageEvent) => {
-      if (user && e.key === `cart_${user.id}`) updateCartCount();
+      const cartKey = currentUser ? `cart_${currentUser.id}` : 'cart_guest';
+      if (e.key === cartKey) updateCartCount();
     };
-    window.addEventListener("storage", onStorage);
+    window.addEventListener('storage', onStorage);
 
     // Cleanup listeners
     return () => {
-      window.removeEventListener("cartUpdated", updateCartCount);
-      window.removeEventListener("storage", onStorage);
+      window.removeEventListener('cartUpdated', updateCartCount);
+      window.removeEventListener('storage', onStorage);
     };
-  }, [user]); // Re-run when user changes
-
-
+  }, [currentUser]);
 
   const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      showToast({
-        title: "Error",
-        description: "Failed to sign out",
-        variant: "destructive",
-      });
-    } else {
-      showToast({
-        title: "Success",
-        description: "Signed out successfully",
-      });
-      navigate("/");
-    }
+    authService.logout();
+    setCurrentUser(null);
+    showToast({
+      title: "Logged Out",
+      description: "You have been successfully logged out.",
+      variant: "default",
+    });
+    navigate('/');
   };
+
+  const handleSignIn = () => {
+    navigate('/auth');
+  };
+
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
@@ -106,22 +102,14 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
   };
 
   const getInitial = () => {
-    if (!user) return "?";
-    if (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) {
-      const n = (user.user_metadata.full_name || user.user_metadata.name) as string;
-      return n.trim().charAt(0).toUpperCase();
+    if (currentUser) {
+      return currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
     }
-    if (user.email) return user.email.trim().charAt(0).toUpperCase();
-    return "?";
+    return "G"; // Guest user
   };
 
   const displayName = () => {
-    if (!user) return "";
-    if (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) {
-      return (user.user_metadata.full_name || user.user_metadata.name) as string;
-    }
-    if (user.email) return user.email.split("@")[0];
-    return "Profile";
+    return currentUser ? currentUser.name : "Guest";
   };
 
   return (
@@ -178,58 +166,86 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
               </select>
             </div>
 
-            {user ? (
-              <>
-                {/* Cart button - only for logged-in users */}
-                <button
-                  onClick={() => navigate("/cart")}
-                  className="relative p-2 rounded hover:bg-gray-100 text-gray-700"
-                  aria-label="Open cart"
-                  title="Cart"
-                >
-                  <ShoppingCart className="h-5 w-5" />
-                  {cartCount > 0 && (
-                    <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-white bg-red-500 rounded-full">
-                      {cartCount}
-                    </span>
-                  )}
-                </button>
+            {/* Always show cart and profile for guest users */}
+            <>
+              {/* Cart button */}
+              <button
+                onClick={() => navigate("/cart")}
+                className="relative p-2 rounded hover:bg-gray-100 text-gray-700"
+                aria-label="Open cart"
+                title="Cart"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-white bg-red-500 rounded-full">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
 
-                {/* Profile Dropdown - next to cart, no name shown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="flex items-center px-2 py-1 rounded hover:bg-gray-100 text-gray-700">
-                      <div className="h-8 w-8 rounded-full bg-gray-300 text-sm font-medium text-gray-700 flex items-center justify-center overflow-hidden">
-                        <span>{getInitial()}</span>
+              {/* Profile Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center px-2 py-1 rounded hover:bg-gray-100 text-gray-700">
+                    <div className={`h-8 w-8 rounded-full text-sm font-medium text-white flex items-center justify-center overflow-hidden ${
+                      currentUser ? 'bg-blue-600' : 'bg-gray-400'
+                    }`}>
+                      <span>{getInitial()}</span>
+                    </div>
+                    {currentUser && (
+                      <Badge variant="secondary" className="ml-2 text-xs bg-green-100 text-green-700">
+                        Logged in
+                      </Badge>
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {currentUser ? (
+                    <>
+                      <div className="px-3 py-2 border-b">
+                        <p className="font-medium text-sm">{currentUser.name}</p>
+                        <p className="text-xs text-gray-500">{currentUser.email}</p>
                       </div>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem asChild>
-                      <Link to="/profile" className="flex items-center w-full cursor-pointer">
-                        <UserIcon className="mr-2 h-4 w-4" />
-                        {t('profile')}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={handleSignOut}
-                      className="text-red-600 focus:text-red-600 cursor-pointer"
-                    >
-                      <span className="text-xs">{t('signOut')}</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      <DropdownMenuItem asChild>
+                        <Link to="/profile" className="flex items-center w-full cursor-pointer">
+                          <UserIcon className="mr-2 h-4 w-4" />
+                          Profile
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={handleSignOut}
+                        className="text-red-600 focus:text-red-600 cursor-pointer"
+                      >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Logout
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <>
+                      <DropdownMenuItem 
+                        onClick={handleSignIn}
+                        className="cursor-pointer"
+                      >
+                        <LogIn className="mr-2 h-4 w-4" />
+                        Login / Register
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/profile" className="flex items-center w-full cursor-pointer">
+                          <UserIcon className="mr-2 h-4 w-4" />
+                          Guest Profile
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-                {/* Add Worker Link - moved to end */}
-                <Link to="/add-worker">
-                  <Button className="bg-blue-600 text-white hover:bg-blue-700">{t('addWorker')}</Button>
-                </Link>
-              </>
-            ) : (
-              <Link to="/auth">
-                <Button className="bg-blue-600 text-white hover:bg-blue-700">{t('signIn')}</Button>
+              {/* Add Worker Link */}
+              <Link to="/add-worker">
+                <Button className="bg-blue-600 text-white hover:bg-blue-700">{t('addWorker')}</Button>
               </Link>
-            )}
+            </>
           </div>
 
           {/* Mobile menu */}
@@ -261,20 +277,18 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
 
                 {/* Mobile links */}
                 
-                {/* Cart link - only for logged-in users */}
-                {user && (
-                  <button
-                    onClick={() => {
-                      setIsOpen(false);
-                      navigate("/cart");
-                    }}
-                    className="flex items-center gap-2 text-lg font-medium hover:text-primary transition-colors"
-                  >
-                    <ShoppingCart className="h-5 w-5" />
-                    Cart
-                    {cartCount > 0 && <span className="ml-2 text-sm text-destructive">({cartCount})</span>}
-                  </button>
-                )}
+                {/* Cart link - guest user */}
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigate("/cart");
+                  }}
+                  className="flex items-center gap-2 text-lg font-medium hover:text-primary transition-colors"
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  Cart
+                  {cartCount > 0 && <span className="ml-2 text-sm text-destructive">({cartCount})</span>}
+                </button>
 
                 <Link to="/" onClick={() => setIsOpen(false)} className="text-lg font-medium hover:text-primary transition-colors">
                   Home
@@ -284,37 +298,31 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                 </Link>
 
                 {/* Show Add Worker in mobile if logged in */}
-                {user && (
-                  <Link to="/add-worker" onClick={() => setIsOpen(false)} className="text-lg font-medium hover:text-primary transition-colors">
-                    Add Worker
-                  </Link>
-                )}
+                {/* Add Worker link - guest user */}
+                <Link to="/add-worker" onClick={() => setIsOpen(false)} className="text-lg font-medium hover:text-primary transition-colors">
+                  Add Worker
+                </Link>
 
                 <Link to="/contact" onClick={() => setIsOpen(false)} className="text-lg font-medium hover:text-primary transition-colors">
                   Contact Us
                 </Link>
 
-                {user ? (
-                  <div className="flex items-center justify-between mt-4 border-t pt-4">
-                    <Link to="/profile" onClick={() => setIsOpen(false)} className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-muted text-sm font-medium text-white flex items-center justify-center overflow-hidden">
-                        <span className="text-lg">{getInitial()}</span>
-                      </div>
-                      <div>
-                        <div className="font-medium">{displayName()}</div>
-                        <div className="text-sm text-muted-foreground">{user.email}</div>
-                      </div>
-                    </Link>
-
-                    <Button variant="ghost" onClick={() => { setIsOpen(false); handleSignOut(); }}>
-                      Sign Out
-                    </Button>
-                  </div>
-                ) : (
-                  <Link to="/auth" onClick={() => setIsOpen(false)}>
-                    <Button className="w-full mt-4">Sign In</Button>
+                {/* Always show guest profile */}
+                <div className="flex items-center justify-between mt-4 border-t pt-4">
+                  <Link to="/profile" onClick={() => setIsOpen(false)} className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-muted text-sm font-medium text-white flex items-center justify-center overflow-hidden">
+                      <span className="text-lg">{getInitial()}</span>
+                    </div>
+                    <div>
+                      <div className="font-medium">{displayName()}</div>
+                      <div className="text-sm text-muted-foreground">Guest User</div>
+                    </div>
                   </Link>
-                )}
+
+                  <Button variant="ghost" onClick={() => { setIsOpen(false); handleSignOut(); }}>
+                    Guest Mode
+                  </Button>
+                </div>
               </div>
             </SheetContent>
           </Sheet>

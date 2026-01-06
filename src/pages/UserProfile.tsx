@@ -1,681 +1,532 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { authService, type User, type UserProfile } from "@/lib/authService";
+import { WorkersService } from "@/lib/dataServices";
 import { 
   User as UserIcon, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Calendar, 
   Edit3, 
   Save, 
-  X, 
-  Camera,
+  Heart, 
+  Calendar, 
+  MapPin, 
+  Phone, 
+  Mail, 
+  Briefcase,
   Settings,
-  Shield,
-  Heart,
-  ShoppingBag,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Star
+  History,
+  Star,
+  X
 } from "lucide-react";
-import { useLanguage } from "@/hooks/useLanguage";
-import "../styles/UserProfile.css";
-
-interface UserProfile {
-  id: string;
-  full_name: string;
-  email: string;
-  phone: string;
-  address: string;
-  profile_image_url: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Order {
-  id: string;
-  worker_id: string;
-  service_type: string;
-  event_date: string;
-  status: string;
-  total_amount: number;
-  customer_name: string;
-  customer_phone: string;
-  customer_address: string;
-  notes: string;
-  created_at: string;
-  workers?: {
-    name: string;
-    profile_image_url: string;
-    category_id: string;
-    categories?: {
-      name: string;
-    };
-  };
-}
 
 const UserProfile = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [ordersLoading, setOrdersLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'orders'>('profile');
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const { currentLanguage } = useLanguage();
-
-  const [editForm, setEditForm] = useState({
-    full_name: "",
-    phone: "",
-    address: "",
-    profile_image_url: ""
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [favoriteWorkers, setFavoriteWorkers] = useState<any[]>([]);
+  
+  // Form states
+  const [profileForm, setProfileForm] = useState<UserProfile>({
+    bio: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    dateOfBirth: '',
+    gender: undefined,
+    occupation: '',
+    company: '',
+    preferences: {
+      language: 'en',
+      notifications: true,
+      emailUpdates: false
+    },
+    avatar: '',
+    socialLinks: {},
+    eventHistory: [],
+    favorites: [],
+    updated_at: new Date()
   });
 
+  const [personalForm, setPersonalForm] = useState({
+    name: '',
+    email: '',
+    phone: ''
+  });
+
+  // Check authentication and load user data
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        setLoading(true);
-        
-        // Get current session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError || !session?.user) {
-          console.log("No user session found", { sessionError, hasSession: !!session });
-          toast({
-            title: currentLanguage === 'te' ? "లాగిన్ అవసరం" : "Login Required",
-            description: currentLanguage === 'te' ? "దయచేసి మొదట లాగిన్ చేయండి" : "Please login first",
-            variant: "destructive",
-          });
-          // Redirect to login page after a short delay
-          setTimeout(() => {
-            window.location.href = '/auth';
-          }, 2000);
-          return;
-        }
-
-        console.log("User found:", session.user.id);
-        setUser(session.user);
-
-        // Try to fetch existing profile
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
-
-        console.log("Profile fetch result:", { profileData, profileError });
-
-        if (profileError) {
-          console.log("Profile fetch error:", profileError);
-          
-          // If profile doesn't exist, create a new one
-          if (profileError.code === 'PGRST116') {
-            console.log("Creating new profile...");
-            const defaultProfile = {
-              id: session.user.id,
-              full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || "User",
-              email: session.user.email || "",
-              phone: "",
-              address: "",
-              profile_image_url: "",
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            };
-
-            console.log("Creating profile with data:", defaultProfile);
-
-            const { data: newProfile, error: createError } = await supabase
-              .from("profiles")
-              .insert([defaultProfile])
-              .select()
-              .single();
-
-            if (createError) {
-              console.error("Error creating profile:", createError);
-              toast({
-                title: "Error",
-                description: "Failed to create user profile. Please check if you're logged in.",
-                variant: "destructive",
-              });
-              return;
-            }
-
-            console.log("New profile created:", newProfile);
-            setProfile(newProfile);
-            setEditForm({
-              full_name: newProfile.full_name,
-              phone: newProfile.phone,
-              address: newProfile.address,
-              profile_image_url: newProfile.profile_image_url
-            });
-          } else {
-            console.error("Unknown profile error:", profileError);
-            toast({
-              title: "Database Error",
-              description: `Failed to fetch profile: ${profileError.message}`,
-              variant: "destructive",
-            });
-            throw profileError;
-          }
-        } else {
-          console.log("Existing profile found:", profileData);
-          setProfile(profileData);
-          setEditForm({
-            full_name: profileData.full_name || "",
-            phone: profileData.phone || "",
-            address: profileData.address || "",
-            profile_image_url: profileData.profile_image_url || ""
-          });
-        }
-
-        // Fetch user orders
-        await fetchUserOrders(session.user.id);
-
-      } catch (error) {
-        console.error("Error in fetchUserProfile:", error);
-        toast({
-          title: currentLanguage === 'te' ? "లోపం" : "Error",
-          description: currentLanguage === 'te' ? "ప్రొఫైల్ డేటా లోడ్ చేయడంలో లోపం" : "Failed to load profile data",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const fetchUserOrders = async (userId: string) => {
-      setOrdersLoading(true);
-      try {
-        console.log("Fetching orders for user:", userId);
-        
-        const { data: ordersData, error } = await supabase
-          .from("orders")
-          .select(`
-            *,
-            workers (
-              name,
-              profile_image_url,
-              category_id,
-              categories (
-                name
-              )
-            )
-          `)
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false });
-
-        if (error) {
-          console.error("Error fetching orders:", error);
-          toast({
-            title: currentLanguage === 'te' ? "హెచ్చరిక" : "Warning",
-            description: currentLanguage === 'te' ? "ఆర్డర్‌లు లోడ్ చేయడంలో లోపం" : "Failed to load orders",
-            variant: "destructive",
-          });
-        } else {
-          console.log("Orders fetched:", ordersData?.length || 0);
-          setOrders(ordersData || []);
-        }
-      } catch (error) {
-        console.error("Error in fetchUserOrders:", error);
-      } finally {
-        setOrdersLoading(false);
-      }
-    };
-
-    fetchUserProfile();
-  }, [currentLanguage, toast]);
-
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    if (profile) {
-      setEditForm({
-        full_name: profile.full_name || "",
-        phone: profile.phone || "",
-        address: profile.address || "",
-        profile_image_url: profile.profile_image_url || ""
+    const user = authService.getCurrentUser();
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to access your profile.",
+        variant: "destructive",
       });
+      navigate('/auth');
+      return;
+    }
+
+    setCurrentUser(user);
+    setPersonalForm({
+      name: user.name,
+      email: user.email,
+      phone: user.phone || ''
+    });
+    
+    // Load user profile
+    const profile = authService.getUserProfile();
+    if (profile) {
+      setProfileForm(profile);
+    }
+
+    // Load favorite workers
+    loadFavoriteWorkers(user.profile.favorites || []);
+  }, [navigate, toast]);
+
+  const loadFavoriteWorkers = async (favoriteIds: string[]) => {
+    if (favoriteIds.length === 0) return;
+    
+    try {
+      const allWorkers = await WorkersService.getAll();
+      const favorites = allWorkers.filter(worker => favoriteIds.includes(worker.id));
+      setFavoriteWorkers(favorites);
+    } catch (error) {
+      console.error('Error loading favorite workers:', error);
     }
   };
 
-  const handleSave = async () => {
-    if (!user || !profile) return;
-
-    setSaving(true);
+  const handleSaveProfile = async () => {
+    if (!currentUser) return;
+    
+    setLoading(true);
     try {
-      const updates = {
-        full_name: editForm.full_name,
-        phone: editForm.phone,
-        address: editForm.address,
-        profile_image_url: editForm.profile_image_url,
-        updated_at: new Date().toISOString()
-      };
-
-      console.log("Updating profile with:", updates);
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .update(updates)
-        .eq("id", user.id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Update error:", error);
-        throw error;
-      }
-
-      setProfile(data);
-      setIsEditing(false);
+      // Update profile data
+      const result = await authService.updateProfile(profileForm);
       
-      toast({
-        title: currentLanguage === 'te' ? "సఫలం!" : "Success!",
-        description: currentLanguage === 'te' ? "మీ ప్రొఫైల్ అప్డేట్ చేయబడింది" : "Your profile has been updated",
-      });
+      if (result.success && result.user) {
+        setCurrentUser(result.user);
+        toast({
+          title: "Profile Updated",
+          description: "Your profile has been saved successfully.",
+        });
+        setIsEditing(false);
+      } else {
+        throw new Error(result.error);
+      }
     } catch (error) {
-      console.error("Error updating profile:", error);
       toast({
-        title: "Error",
-        description: "Failed to update profile",
+        title: "Update Failed",
+        description: error instanceof Error ? error.message : "Failed to update profile.",
         variant: "destructive",
       });
     } finally {
-      setSaving(false);
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveFromFavorites = async (workerId: string) => {
+    try {
+      const result = await authService.removeFromFavorites(workerId);
+      if (result.success) {
+        // Update local state
+        setFavoriteWorkers(prev => prev.filter(worker => worker.id !== workerId));
+        setProfileForm(prev => ({
+          ...prev,
+          favorites: prev.favorites?.filter(id => id !== workerId) || []
+        }));
+        
+        toast({
+          title: "Removed from Favorites",
+          description: "Worker removed from your favorites.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to remove from favorites.",
+        variant: "destructive",
+      });
     }
   };
 
   const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString(currentLanguage === 'te' ? 'te-IN' : 'en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch (error) {
-      return dateString;
-    }
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'cancelled':
-        return <XCircle className="w-4 h-4 text-red-500" />;
-      case 'pending':
-        return <Clock className="w-4 h-4 text-yellow-500" />;
-      default:
-        return <AlertCircle className="w-4 h-4 text-gray-500" />;
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    const statusMap = {
-      pending: currentLanguage === 'te' ? "వేచుకుంటున్నది" : "Pending",
-      confirmed: currentLanguage === 'te' ? "ధృవీకరించబడింది" : "Confirmed",
-      in_progress: currentLanguage === 'te' ? "ప్రోగ్రెస్‌లో" : "In Progress",
-      completed: currentLanguage === 'te' ? "పూర్తయింది" : "Completed",
-      cancelled: currentLanguage === 'te' ? "రద్దు చేయబడింది" : "Cancelled"
-    };
-    return statusMap[status as keyof typeof statusMap] || status;
-  };
-
-  if (loading) {
+  if (!currentUser) {
     return (
-      <div className="user-profile-container">
-        <div className="user-profile-loading">
-          <div className="user-profile-loader"></div>
-          <p>{currentLanguage === 'te' ? "లోడ్ అవుతోంది..." : "Loading..."}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="user-profile-container">
-        <div className="user-profile-error">
-          <UserIcon className="user-profile-error-icon" />
-          <h2>{currentLanguage === 'te' ? "లాగిన్ అవసరం" : "Login Required"}</h2>
-          <p>{currentLanguage === 'te' ? "దయచేసి మొదట లాగిన్ చేయండి" : "Please login to view your profile"}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <div className="user-profile-container">
-        <div className="user-profile-error">
-          <AlertCircle className="user-profile-error-icon" />
-          <h2>{currentLanguage === 'te' ? "ప్రొఫైల్ సమస్య" : "Profile Not Found"}</h2>
-          <p>{currentLanguage === 'te' ? "దయచేసి లాగిన్ చేసి మళ్లీ ప్రయత్నించండి" : "Please login and try again"}</p>
-          <div className="flex gap-4 mt-4">
-            <Button onClick={() => window.location.href = '/auth'} className="bg-blue-600 hover:bg-blue-700">
-              {currentLanguage === 'te' ? "లాగిన్" : "Login"}
-            </Button>
-            <Button onClick={() => window.location.reload()} variant="outline">
-              {currentLanguage === 'te' ? "మళ్లీ ప్రయత్నించండి" : "Try Again"}
-            </Button>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading profile...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="user-profile-container">
-      <div className="user-profile-content">
-        {/* Header Section */}
-        <div className="user-profile-header">
-          <div className="user-profile-header-content">
-            <div className="user-profile-avatar-section">
-              <div className="user-profile-avatar">
-                {profile.profile_image_url ? (
-                  <img 
-                    src={profile.profile_image_url} 
-                    alt={profile.full_name}
-                    className="user-profile-avatar-image"
-                    onError={(e) => {
-                      // If image fails to load, fallback to icon
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <UserIcon className="user-profile-avatar-icon" />
-                )}
-                {isEditing && (
-                  <button className="user-profile-avatar-edit">
-                    <Camera size={16} />
-                  </button>
-                )}
-              </div>
-            </div>
-            
-            <div className="user-profile-info">
-              <h1 className="user-profile-name">
-                {profile.full_name || user.email?.split('@')[0] || "User"}
-              </h1>
-              <p className="user-profile-email">{profile.email}</p>
-              <div className="user-profile-stats">
-                <div className="user-profile-stat">
-                  <Calendar className="user-profile-stat-icon" />
-                  <span className="user-profile-stat-text">
-                    {currentLanguage === 'te' ? "చేరిన తేదీ: " : "Joined: "}
-                    {formatDate(profile.created_at)}
-                  </span>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="container mx-auto px-4 max-w-6xl">
+        {/* Profile Header */}
+        <Card className="mb-6 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                  <UserIcon className="h-8 w-8" />
                 </div>
-                <div className="user-profile-stat">
-                  <ShoppingBag className="user-profile-stat-icon" />
-                  <span className="user-profile-stat-text">
-                    {orders.length} {currentLanguage === 'te' ? "ఆర్డర్‌లు" : "Orders"}
-                  </span>
+                <div>
+                  <CardTitle className="text-2xl">{currentUser.name}</CardTitle>
+                  <CardDescription className="text-blue-100">
+                    Member since {formatDate(currentUser.created_at.toString())}
+                  </CardDescription>
                 </div>
               </div>
+              <Badge variant="secondary" className="bg-green-500 text-white">
+                Active User
+              </Badge>
             </div>
+          </CardHeader>
+        </Card>
 
-            <div className="user-profile-actions">
-              {!isEditing ? (
-                <Button onClick={handleEdit} className="user-profile-edit-btn">
-                  <Edit3 size={16} />
-                  {currentLanguage === 'te' ? "సవరించు" : "Edit Profile"}
-                </Button>
-              ) : (
-                <div className="user-profile-edit-actions">
-                  <Button 
-                    onClick={handleSave} 
-                    disabled={saving}
-                    className="user-profile-save-btn"
-                  >
-                    <Save size={16} />
-                    {saving ? (currentLanguage === 'te' ? "సేవ్ అవుతోంది..." : "Saving...") : (currentLanguage === 'te' ? "సేవ్ చేయండి" : "Save")}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={handleCancel}
-                    className="user-profile-cancel-btn"
-                  >
-                    <X size={16} />
-                    {currentLanguage === 'te' ? "రద్దు చేయండి" : "Cancel"}
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <Tabs defaultValue="profile" className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsTrigger value="profile" className="flex items-center gap-2">
+              <UserIcon className="h-4 w-4" />
+              Profile
+            </TabsTrigger>
+            <TabsTrigger value="favorites" className="flex items-center gap-2">
+              <Heart className="h-4 w-4" />
+              Favorites ({favoriteWorkers.length})
+            </TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center gap-2">
+              <History className="h-4 w-4" />
+              History
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Settings
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Tab Navigation */}
-        <div className="user-profile-tabs">
-          <button 
-            className={`user-profile-tab ${activeTab === 'profile' ? 'active' : ''}`}
-            onClick={() => setActiveTab('profile')}
-          >
-            <UserIcon size={20} />
-            {currentLanguage === 'te' ? "ప్రొఫైల్" : "Profile"}
-          </button>
-          <button 
-            className={`user-profile-tab ${activeTab === 'orders' ? 'active' : ''}`}
-            onClick={() => setActiveTab('orders')}
-          >
-            <ShoppingBag size={20} />
-            {currentLanguage === 'te' ? "మీ ఆర్డర్‌లు" : "Your Orders"}
-          </button>
-        </div>
-
-        <div className="user-profile-body">
-          {activeTab === 'profile' && (
-            <>
-              {/* Personal Information Section */}
-              <Card className="user-profile-section">
-                <CardHeader>
-                  <CardTitle className="user-profile-section-title">
-                    <UserIcon className="user-profile-section-icon" />
-                    {currentLanguage === 'te' ? "వ్యక్తిగత సమాచారం" : "Personal Information"}
+          {/* Profile Tab */}
+          <TabsContent value="profile">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Personal Information */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <UserIcon className="h-5 w-5" />
+                    Personal Information
                   </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditing(!isEditing)}
+                  >
+                    {isEditing ? <X className="h-4 w-4" /> : <Edit3 className="h-4 w-4" />}
+                    {isEditing ? 'Cancel' : 'Edit'}
+                  </Button>
                 </CardHeader>
-                <CardContent className="user-profile-section-content">
-                  <div className="user-profile-form">
-                    <div className="user-profile-field">
-                      <Label htmlFor="full_name">
-                        {currentLanguage === 'te' ? "పూర్తి పేరు" : "Full Name"}
-                      </Label>
-                      {isEditing ? (
-                        <Input
-                          id="full_name"
-                          value={editForm.full_name}
-                          onChange={(e) => setEditForm(prev => ({ ...prev, full_name: e.target.value }))}
-                          placeholder={currentLanguage === 'te' ? "మీ పూర్తి పేరు" : "Your full name"}
-                        />
-                      ) : (
-                        <div className="user-profile-field-value">
-                          {profile.full_name || (currentLanguage === 'te' ? "పేరు లేదు" : "No name provided")}
-                        </div>
-                      )}
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="name">Full Name</Label>
+                      <Input
+                        id="name"
+                        value={personalForm.name}
+                        onChange={(e) => setPersonalForm(prev => ({ ...prev, name: e.target.value }))}
+                        disabled={!isEditing}
+                      />
                     </div>
-
-                    <div className="user-profile-field">
-                      <Label htmlFor="email">
-                        <Mail className="user-profile-field-icon" />
-                        {currentLanguage === 'te' ? "ఇమెయిల్" : "Email"}
-                      </Label>
-                      <div className="user-profile-field-value">
-                        {profile.email}
-                      </div>
-                    </div>
-
-                    <div className="user-profile-field">
-                      <Label htmlFor="phone">
-                        <Phone className="user-profile-field-icon" />
-                        {currentLanguage === 'te' ? "ఫోన్ నంబర్" : "Phone Number"}
-                      </Label>
-                      {isEditing ? (
-                        <Input
-                          id="phone"
-                          value={editForm.phone}
-                          onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
-                          placeholder={currentLanguage === 'te' ? "మీ ఫోన్ నంబర్" : "Your phone number"}
-                        />
-                      ) : (
-                        <div className="user-profile-field-value">
-                          {profile.phone || (currentLanguage === 'te' ? "ఫోన్ నంబర్ లేదు" : "No phone number")}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="user-profile-field">
-                      <Label htmlFor="address">
-                        <MapPin className="user-profile-field-icon" />
-                        {currentLanguage === 'te' ? "చిరునామా" : "Address"}
-                      </Label>
-                      {isEditing ? (
-                        <Input
-                          id="address"
-                          value={editForm.address}
-                          onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))}
-                          placeholder={currentLanguage === 'te' ? "మీ చిరునామా" : "Your address"}
-                        />
-                      ) : (
-                        <div className="user-profile-field-value">
-                          {profile.address || (currentLanguage === 'te' ? "చిరునామా లేదు" : "No address provided")}
-                        </div>
-                      )}
+                    <div>
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={personalForm.email}
+                        disabled
+                        className="bg-gray-50"
+                      />
                     </div>
                   </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="phone">Phone</Label>
+                      <Input
+                        id="phone"
+                        value={personalForm.phone}
+                        onChange={(e) => setPersonalForm(prev => ({ ...prev, phone: e.target.value }))}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                      <Input
+                        id="dateOfBirth"
+                        type="date"
+                        value={profileForm.dateOfBirth || ''}
+                        onChange={(e) => setProfileForm(prev => ({ ...prev, dateOfBirth: e.target.value }))}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="bio">Bio</Label>
+                    <Textarea
+                      id="bio"
+                      placeholder="Tell us about yourself..."
+                      value={profileForm.bio || ''}
+                      onChange={(e) => setProfileForm(prev => ({ ...prev, bio: e.target.value }))}
+                      disabled={!isEditing}
+                      rows={3}
+                    />
+                  </div>
+
+                  {isEditing && (
+                    <Button onClick={handleSaveProfile} disabled={loading} className="w-full">
+                      <Save className="h-4 w-4 mr-2" />
+                      {loading ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* Account Settings Section */}
-              <Card className="user-profile-section">
+              {/* Address Information */}
+              <Card>
                 <CardHeader>
-                  <CardTitle className="user-profile-section-title">
-                    <Settings className="user-profile-section-icon" />
-                    {currentLanguage === 'te' ? "ఖాతా సెట్టింగ్‌లు" : "Account Settings"}
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Address Information
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="user-profile-section-content">
-                  <div className="user-profile-settings">
-                    <div className="user-profile-setting-item">
-                      <Shield className="user-profile-setting-icon" />
-                      <div className="user-profile-setting-info">
-                        <h4>{currentLanguage === 'te' ? "ప్రైవసీ సెట్టింగ్‌లు" : "Privacy Settings"}</h4>
-                        <p>{currentLanguage === 'te' ? "మీ ప్రైవసీ ప్రాధాన్యతలను నిర్వహించండి" : "Manage your privacy preferences"}</p>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        {currentLanguage === 'te' ? "నిర్వహించండి" : "Manage"}
-                      </Button>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="address">Street Address</Label>
+                    <Input
+                      id="address"
+                      value={profileForm.address || ''}
+                      onChange={(e) => setProfileForm(prev => ({ ...prev, address: e.target.value }))}
+                      disabled={!isEditing}
+                      placeholder="Enter your street address"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        value={profileForm.city || ''}
+                        onChange={(e) => setProfileForm(prev => ({ ...prev, city: e.target.value }))}
+                        disabled={!isEditing}
+                        placeholder="City"
+                      />
                     </div>
-
-                    <div className="user-profile-setting-item">
-                      <Heart className="user-profile-setting-icon" />
-                      <div className="user-profile-setting-info">
-                        <h4>{currentLanguage === 'te' ? "ఇష్టమైన వర్కర్లు" : "Favorite Workers"}</h4>
-                        <p>{currentLanguage === 'te' ? "మీ ఇష్టమైన వర్కర్ల జాబితా చూడండి" : "View your favorite workers list"}</p>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        {currentLanguage === 'te' ? "చూడండి" : "View"}
-                      </Button>
+                    <div>
+                      <Label htmlFor="state">State</Label>
+                      <Input
+                        id="state"
+                        value={profileForm.state || ''}
+                        onChange={(e) => setProfileForm(prev => ({ ...prev, state: e.target.value }))}
+                        disabled={!isEditing}
+                        placeholder="State"
+                      />
                     </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="pincode">PIN Code</Label>
+                    <Input
+                      id="pincode"
+                      value={profileForm.pincode || ''}
+                      onChange={(e) => setProfileForm(prev => ({ ...prev, pincode: e.target.value }))}
+                      disabled={!isEditing}
+                      placeholder="PIN Code"
+                    />
                   </div>
                 </CardContent>
               </Card>
-            </>
-          )}
+            </div>
+          </TabsContent>
 
-          {activeTab === 'orders' && (
-            <Card className="user-profile-section">
+          {/* Favorites Tab */}
+          <TabsContent value="favorites">
+            <Card>
               <CardHeader>
-                <CardTitle className="user-profile-section-title">
-                  <ShoppingBag className="user-profile-section-icon" />
-                  {currentLanguage === 'te' ? "మీ ఆర్డర్‌లు" : "Your Orders"}
+                <CardTitle className="flex items-center gap-2">
+                  <Heart className="h-5 w-5" />
+                  Favorite Workers ({favoriteWorkers.length})
                 </CardTitle>
+                <CardDescription>
+                  Workers you've added to your favorites for easy access
+                </CardDescription>
               </CardHeader>
-              <CardContent className="user-profile-section-content">
-                {ordersLoading ? (
-                  <div className="orders-loading">
-                    <div className="user-profile-loader"></div>
-                    <p>{currentLanguage === 'te' ? "ఆర్డర్‌లు లోడ్ అవుతున్నాయి..." : "Loading orders..."}</p>
-                  </div>
-                ) : orders.length === 0 ? (
-                  <div className="no-orders">
-                    <ShoppingBag className="no-orders-icon" />
-                    <h3>{currentLanguage === 'te' ? "ఆర్డర్‌లు లేవు" : "No Orders Yet"}</h3>
-                    <p>{currentLanguage === 'te' ? "మీరు ఇంకా ఏ సేవలను బుక్ చేయలేదు" : "You haven't booked any services yet"}</p>
+              <CardContent>
+                {favoriteWorkers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">No favorite workers yet</p>
+                    <p className="text-gray-400 text-sm">Add workers to favorites while browsing</p>
                   </div>
                 ) : (
-                  <div className="orders-list">
-                    {orders.map((order) => (
-                      <div key={order.id} className="order-card">
-                        <div className="order-header">
-                          <div className="order-worker">
-                            {order.workers?.profile_image_url ? (
-                              <img 
-                                src={order.workers.profile_image_url} 
-                                alt={order.workers.name}
-                                className="order-worker-avatar"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              <UserIcon className="order-worker-avatar-icon" />
-                            )}
-                            <div className="order-worker-info">
-                              <h4>{order.workers?.name || "Worker"}</h4>
-                              <p>{order.workers?.categories?.name || order.service_type}</p>
-                            </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {favoriteWorkers.map((worker) => (
+                      <Card key={worker.id} className="relative">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <h3 className="font-semibold">{worker.name}</h3>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveFromFavorites(worker.id)}
+                              className="text-red-500 hover:text-red-700 p-1 h-auto"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
                           </div>
-                          <div className="order-status">
-                            {getStatusIcon(order.status)}
-                            <span>{getStatusText(order.status)}</span>
+                          <p className="text-sm text-gray-600 mb-2">{worker.specialization}</p>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm">{worker.rating}</span>
                           </div>
-                        </div>
-                        
-                        <div className="order-details">
-                          <div className="order-detail">
-                            <Calendar className="order-detail-icon" />
-                            <span>{formatDate(order.event_date)}</span>
-                          </div>
-                          <div className="order-detail">
-                            <MapPin className="order-detail-icon" />
-                            <span>{order.customer_address || (currentLanguage === 'te' ? "చిరునామా లేదు" : "No address")}</span>
-                          </div>
-                          {order.total_amount && (
-                            <div className="order-detail">
-                              <span className="order-amount">₹{order.total_amount}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {order.notes && (
-                          <div className="order-notes">
-                            <p><strong>{currentLanguage === 'te' ? "గమనికలు:" : "Notes:"}</strong> {order.notes}</p>
-                          </div>
-                        )}
-
-                        <div className="order-footer">
-                          <small>{currentLanguage === 'te' ? "బుక్ చేసిన తేదీ: " : "Booked on: "}{formatDate(order.created_at)}</small>
-                        </div>
-                      </div>
+                          <Button
+                            size="sm"
+                            onClick={() => navigate(`/worker/${worker.id}`)}
+                            className="w-full"
+                          >
+                            View Profile
+                          </Button>
+                        </CardContent>
+                      </Card>
                     ))}
                   </div>
                 )}
               </CardContent>
             </Card>
-          )}
-        </div>
+          </TabsContent>
+
+          {/* History Tab */}
+          <TabsContent value="history">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  Event History
+                </CardTitle>
+                <CardDescription>
+                  Your past bookings and events
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {profileForm.eventHistory?.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">No event history yet</p>
+                    <p className="text-gray-400 text-sm">Your booked events will appear here</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {profileForm.eventHistory?.map((event) => (
+                      <Card key={event.id} className="border-l-4 border-l-blue-500">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold">{event.eventType}</h3>
+                            <Badge variant="outline">
+                              {formatDate(event.date)}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            Workers: {event.workers.length} booked
+                          </p>
+                          {event.amount && (
+                            <p className="text-sm font-medium text-green-600">
+                              Amount: ₹{event.amount.toLocaleString()}
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Account Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Email Notifications</Label>
+                      <p className="text-sm text-gray-500">Receive updates about your bookings</p>
+                    </div>
+                    <Switch
+                      checked={profileForm.preferences?.notifications || false}
+                      onCheckedChange={(checked) => 
+                        setProfileForm(prev => ({
+                          ...prev,
+                          preferences: { ...prev.preferences!, notifications: checked }
+                        }))
+                      }
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Marketing Emails</Label>
+                      <p className="text-sm text-gray-500">Receive promotional offers and updates</p>
+                    </div>
+                    <Switch
+                      checked={profileForm.preferences?.emailUpdates || false}
+                      onCheckedChange={(checked) => 
+                        setProfileForm(prev => ({
+                          ...prev,
+                          preferences: { ...prev.preferences!, emailUpdates: checked }
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleSaveProfile}
+                  disabled={loading}
+                  className="w-full"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {loading ? 'Saving...' : 'Save Settings'}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

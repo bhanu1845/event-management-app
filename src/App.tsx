@@ -5,9 +5,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useEffect, useState } from "react";
-import type { User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+
 import { WorkerCartProvider } from "./contexts/WorkerCartContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 
@@ -42,29 +41,7 @@ import ReceptionPage from "./pages/ReceptionPage";
 const queryClient = new QueryClient();
 
 function App() {
-  const [user, setUser] = useState<User | null>(null);
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
-
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data?.session?.user ?? null);
-    });
-
-    // Listen for auth changes
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => {
-      // safe cleanup:
-      try {
-        sub?.subscription?.unsubscribe?.();
-      } catch {
-        // Ignore errors during unsubscribe cleanup
-      }
-    };
-  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -75,7 +52,7 @@ function App() {
           <LanguageProvider>
             <WorkerCartProvider>
               <div className="min-h-screen flex flex-col">
-              <Navbar user={user} />
+              <Navbar />
               <main className="flex-1">
                 <Routes>
                   <Route path="/" element={<Home />} />

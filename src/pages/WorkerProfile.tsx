@@ -1,30 +1,14 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import { useParams, useNavigate } from "react-router-dom";
+import { WorkersService, type Worker } from "@/lib/dataServices";
+import { authService } from "@/lib/authService";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Star, Calendar, Award, Users, Shield, ShoppingCart, MessageSquare, Briefcase } from "lucide-react";
+import { MapPin, Star, Calendar, Award, Users, Shield, ShoppingCart, MessageSquare, Briefcase, ArrowLeft, Heart } from "lucide-react";
 import { addToCart } from "@/lib/cartUtils";
-
-interface Worker {
-  id: string;
-  name: string;
-  description: string;
-  phone: string;
-  email: string;
-  location: string;
-  profile_image_url: string;
-  experience_years: number;
-  rating: number;
-  created_at: string;
-  category_id: string;
-  categories?: {
-    name: string;
-  };
-}
 
 interface WorkerImage {
   id: string;
@@ -42,168 +26,166 @@ interface Review {
 
 const WorkerProfile = () => {
   const { workerId } = useParams();
+  const navigate = useNavigate();
   const [worker, setWorker] = useState<Worker | null>(null);
-  const [user, setUser] = useState<User | null>(null);
   const [images, setImages] = useState<WorkerImage[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFavorite, setIsFavorite] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchData = async () => {
-      // Check user authentication
-      const { data } = await supabase.auth.getSession();
-      setUser(data?.session?.user ?? null);
-      
-      // Fetch worker details with category
-      const { data: workerData, error: workerError } = await supabase
-        .from("workers")
-        .select(`
-          *,
-          categories (
-            name
-          )
-        `)
-        .eq("id", workerId)
-        .single();
-
-      if (workerError) {
+    const fetchWorkerData = async () => {
+      if (!workerId) {
         toast({
           title: "Error",
-          description: "Failed to load worker profile",
+          description: "Worker ID not provided",
           variant: "destructive",
         });
-      } else {
-        setWorker(workerData);
+        navigate('/');
+        return;
       }
 
-      // Fetch worker images
-      const { data: imagesData, error: imagesError } = await supabase
-        .from("worker_images")
-        .select("*")
-        .eq("worker_id", workerId)
-        .order("created_at", { ascending: false });
-
-      if (!imagesError) {
-        setImages(imagesData || []);
-      }
-
-      // Fetch worker reviews
-      const { data: reviewsData, error: reviewsError } = await supabase
-        .from("worker_reviews")
-        .select("*")
-        .eq("worker_id", workerId)
-        .order("created_at", { ascending: false });
-
-      if (!reviewsError && reviewsData) {
-        setReviews(reviewsData);
+      try {
+        setLoading(true);
         
-        // Calculate average rating from reviews
-        if (reviewsData.length > 0 && workerData) {
-          const averageRating = reviewsData.reduce((sum, review) => sum + review.rating, 0) / reviewsData.length;
-          // Update worker with calculated rating
-          setWorker(prev => prev ? { ...prev, rating: parseFloat(averageRating.toFixed(1)) } : null);
+        // Fetch worker data using our data service
+        const workerData = await WorkersService.getById(workerId);
+        
+        if (!workerData) {
+          toast({
+            title: "Worker Not Found",
+            description: "The requested worker profile could not be found.",
+            variant: "destructive",
+          });
+          navigate('/');
+          return;
         }
-      }
 
-      setLoading(false);
+        setWorker(workerData);
+        
+        // Check if worker is in user's favorites
+        const currentUser = authService.getCurrentUser();
+        if (currentUser) {
+          const favorites = currentUser.profile.favorites || [];
+          setIsFavorite(favorites.includes(workerId));
+        }
+        
+        // Sample images and reviews for demo
+        setImages([
+          { id: '1', image_url: '/images/workers/work1.jpg', description: 'Recent work sample' },
+          { id: '2', image_url: '/images/workers/work2.jpg', description: 'Event setup' },
+          { id: '3', image_url: '/images/workers/work3.jpg', description: 'Professional service' }
+        ]);
+        
+        setReviews([
+          {
+            id: '1',
+            rating: 5,
+            comment: 'Excellent service! Highly professional and delivered beyond expectations.',
+            client_name: 'Rajesh Kumar',
+            created_at: new Date().toISOString()
+          },
+          {
+            id: '2',
+            rating: 4,
+            comment: 'Great work quality and timely delivery. Would recommend!',
+            client_name: 'Priya Devi',
+            created_at: new Date().toISOString()
+          }
+        ]);
+        
+      } catch (error) {
+        console.error('Error fetching worker data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load worker profile. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
     };
 
-    if (workerId) {
-      fetchData();
-    }
-  }, [workerId, toast]);
+    fetchWorkerData();
+  }, [workerId, toast, navigate]);
 
   const handleAddToCart = () => {
-    if (!worker || !user) {
-      toast({
-        title: "Please Sign In",
-        description: "You need to be signed in to add workers to your cart.",
-        variant: "destructive",
+    if (worker) {
+      addToCart({
+        id: worker.id,
+        name: worker.name,
+        category: worker.specialization || 'Service',
+        price: worker.price_range || 'Contact for pricing',
+        image: worker.profile_image_url || '/images/workers/default-worker.jpg'
       });
-      return;
+      toast({
+        title: "Added to Cart",
+        description: `${worker.name} has been added to your cart.`,
+      });
     }
-    
-    // Create cart item
-    const item = {
-      id: worker.id,
-      name: worker.name,
-      phone: worker.phone,
-      category: worker.categories?.name,
-      addedAt: new Date().toISOString(),
-    };
-    
+  };
+
+  const handleAddToFavorites = async () => {
+    if (!worker) return;
+
     try {
-      addToCart(user.id, item);
-      
-      toast({
-        title: "Added to Cart! 🛒",
-        description: `${worker.name} has been added to your cart for booking.`,
-        duration: 3000
-      });
+      const result = await authService.addToFavorites(worker.id);
+      if (result.success) {
+        setIsFavorite(true);
+        toast({
+          title: "Added to Favorites",
+          description: `${worker.name} has been added to your favorites.`,
+        });
+      } else {
+        toast({
+          title: "Login Required",
+          description: "Please log in to add workers to favorites.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
-        title: "Already in Cart",
-        description: `${worker.name} is already in your cart.`,
+        title: "Error",
+        description: "Failed to add to favorites. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemoveFromFavorites = async () => {
+    if (!worker) return;
+
+    try {
+      const result = await authService.removeFromFavorites(worker.id);
+      if (result.success) {
+        setIsFavorite(false);
+        toast({
+          title: "Removed from Favorites",
+          description: `${worker.name} has been removed from your favorites.`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to remove from favorites. Please try again.",
         variant: "destructive",
       });
     }
   };
 
   const handleBookWorker = () => {
-    if (!worker || !user) {
-      toast({
-        title: "Please Sign In",
-        description: "You need to be signed in to book workers.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Create cart item
-    const item = {
-      id: worker.id,
-      name: worker.name,
-      phone: worker.phone,
-      category: worker.categories?.name,
-      addedAt: new Date().toISOString(),
-    };
-    
-    try {
-      addToCart(user.id, item);
-      
-      toast({
-        title: "Booked Successfully! ✅",
-        description: `${worker.name} has been booked for your event.`,
-        duration: 3000
-      });
-    } catch (error) {
-      toast({
-        title: "Already Booked",
-        description: `${worker.name} is already in your cart.`,
-        variant: "destructive",
-      });
-    }
+    // Add worker to cart and navigate to cart for booking
+    handleAddToCart();
+    navigate('/cart');
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-6">
-        <div className="container mx-auto px-4">
-          <div className="animate-pulse space-y-6">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="flex flex-col lg:flex-row gap-6">
-                <div className="flex-1 space-y-4">
-                  <div className="h-6 bg-gray-200 rounded w-1/4" />
-                  <div className="h-4 bg-gray-200 rounded w-1/3" />
-                  <div className="h-16 bg-gray-200 rounded" />
-                </div>
-                <div className="w-full lg:w-64 space-y-4">
-                  <div className="h-10 bg-gray-200 rounded" />
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading worker profile...</p>
         </div>
       </div>
     );
@@ -211,15 +193,13 @@ const WorkerProfile = () => {
 
   if (!worker) {
     return (
-      <div className="min-h-screen bg-gray-50 py-6">
-        <div className="container mx-auto px-4">
-          <Card className="max-w-2xl mx-auto">
-            <CardContent className="py-16 text-center">
-              <div className="text-6xl mb-4">😔</div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Worker Not Found</h2>
-              <p className="text-gray-600">The worker profile you're looking for doesn't exist.</p>
-            </CardContent>
-          </Card>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Worker Not Found</h2>
+          <p className="text-gray-600 mb-6">The worker profile you're looking for doesn't exist.</p>
+          <Button onClick={() => navigate('/')} className="bg-blue-600 hover:bg-blue-700">
+            Go Back to Home
+          </Button>
         </div>
       </div>
     );
@@ -228,6 +208,18 @@ const WorkerProfile = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-6">
       <div className="container mx-auto px-4">
+        {/* Back Button */}
+        <div className="mb-6">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate(-1)}
+            className="text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Home
+          </Button>
+        </div>
+
         {/* Main Profile Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {/* Left Column - Profile Info */}
@@ -357,38 +349,38 @@ const WorkerProfile = () => {
               <CardContent className="p-5">
                 <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
                 <div className="space-y-3">
-                  {user ? (
-                    <>
-                      <Button
-                        onClick={handleAddToCart}
-                        variant="outline"
-                        className="w-full border-gray-300 py-2.5 bg-white hover:bg-gray-50"
-                      >
-                        <ShoppingCart className="h-4 w-4 mr-2" />
-                        Add to Cart
-                      </Button>
-                      <Button
-                        onClick={handleBookWorker}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 font-medium"
-                      >
-                        <Briefcase className="h-4 w-4 mr-2" />
-                        Book Now
-                      </Button>
-                    </>
-                  ) : (
+                  {/* Always show action buttons for guest users */}
+                  <>
                     <Button
-                      onClick={() => toast({
-                        title: "Please Sign In",
-                        description: "You need to sign in to book workers.",
-                        variant: "destructive",
-                      })}
+                      onClick={handleAddToCart}
                       variant="outline"
-                      className="w-full py-2.5 border-gray-300 bg-white hover:bg-gray-50"
+                      className="w-full border-gray-300 py-2.5 bg-white hover:bg-gray-50"
                     >
                       <ShoppingCart className="h-4 w-4 mr-2" />
-                      Sign In to Book
+                      Add to Cart
                     </Button>
-                  )}
+                    
+                    <Button
+                      onClick={isFavorite ? handleRemoveFromFavorites : handleAddToFavorites}
+                      variant="outline"
+                      className={`w-full border-gray-300 py-2.5 ${
+                        isFavorite 
+                          ? 'bg-red-50 text-red-600 border-red-300 hover:bg-red-100' 
+                          : 'bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      <Heart className={`h-4 w-4 mr-2 ${isFavorite ? 'fill-current' : ''}`} />
+                      {isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+                    </Button>
+                    
+                    <Button
+                      onClick={handleBookWorker}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 font-medium"
+                    >
+                      <Briefcase className="h-4 w-4 mr-2" />
+                      Book Now
+                    </Button>
+                  </>
                 </div>
               </CardContent>
             </Card>

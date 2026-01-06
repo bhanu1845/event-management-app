@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
+
+
 import { getCart, removeFromCart, clearCart } from "@/lib/cartUtils";
 import { Badge } from "@/components/ui/badge";
 

@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, Users, Heart, Gift, Camera, Music, Sparkles, MapPin, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import "@/styles/AnniversaryPage.css";
 
 interface Category {
@@ -89,54 +88,57 @@ const AnniversaryPage = () => {
       try {
         setIsLoading(true);
 
-        // Fetch categories
-        const { data: categoriesData, error: categoriesError } = await supabase
-          .from("categories")
-          .select("*")
-          .in("name", anniversaryRelatedCategories);
+        // Static categories data
+        const staticCategories: Category[] = [
+          { id: "decoration", name: "Decoration", description: "Beautiful anniversary decorations", image_url: "/images/decoration.jpg" },
+          { id: "photography", name: "Photography", description: "Capture anniversary moments", image_url: "/images/photography.jpg" },
+          { id: "catering", name: "Catering", description: "Anniversary dining services", image_url: "/images/catring.jpg" },
+          { id: "entertainment", name: "Entertainment", description: "Anniversary entertainment", image_url: "/images/dj.jpg" },
+          { id: "planning", name: "Venue Management", description: "Anniversary venue planning", image_url: "/images/venue.jpg" }
+        ];
+        setCategories(staticCategories);
 
-        if (categoriesError) throw categoriesError;
-        setCategories(categoriesData || []);
-
-        // Fetch workers from anniversary-related categories
-        const { data: workersData, error: workersError } = await supabase
-          .from("workers")
-          .select(`
-            id,
-            name,
-            category_id,
-            phone,
-            email,
-            location,
-            description,
-            profile_image_url,
-            experience_years,
-            rating,
-            created_at,
-            categories (
-              id,
-              name,
-              description,
-              image_url
-            )
-          `)
-          .in("category_id", (categoriesData || []).map(cat => cat.id))
-          .order("rating", { ascending: false });
-
-        if (workersError) throw workersError;
-
-        // Transform workers data to match our interface
-        const transformedWorkers: Worker[] = (workersData || []).map(worker => ({
-          ...worker,
-          specialty: worker.categories?.name || "General",
-          reviews: Math.floor(Math.random() * 200) + 50,
-          projects_completed: Math.floor(Math.random() * 150) + 30
-        }));
-
-        setWorkers(transformedWorkers);
+        // Static workers data for anniversary
+        const staticWorkers: Worker[] = [
+          {
+            id: "w1",
+            name: "Romantic Decorations",
+            category_id: "decoration",
+            phone: "+91 98765 43210",
+            email: "romantic@example.com",
+            location: "Hyderabad",
+            description: "Specializing in romantic anniversary setups",
+            profile_image_url: "/images/worker1.jpg",
+            experience_years: 8,
+            rating: 4.9,
+            created_at: "2023-01-15",
+            categories: { id: "decoration", name: "Decoration", description: "Decoration services", image_url: "/images/decoration.jpg" },
+            specialty: "Decoration",
+            reviews: 156,
+            projects_completed: 98
+          },
+          {
+            id: "w2",
+            name: "Anniversary Photography",
+            category_id: "photography",
+            phone: "+91 98765 43211",
+            email: "photos@example.com",
+            location: "Vijayawada",
+            description: "Capturing beautiful anniversary moments",
+            profile_image_url: "/images/worker2.jpg",
+            experience_years: 6,
+            rating: 4.8,
+            created_at: "2023-02-20",
+            categories: { id: "photography", name: "Photography", description: "Photography services", image_url: "/images/photography.jpg" },
+            specialty: "Photography",
+            reviews: 134,
+            projects_completed: 76
+          },
+        ];
+        setWorkers(staticWorkers);
 
       } catch (error) {
-        console.error("Error fetching anniversary workers:", error);
+        console.error("Error loading anniversary data:", error);
         toast({
           title: "Error",
           description: "Failed to load anniversary specialists",
@@ -148,7 +150,7 @@ const AnniversaryPage = () => {
     };
 
     fetchAnniversaryWorkers();
-  }, []);
+  }, [toast]);
 
   // Filter workers based on active category
   const filteredWorkers = activeCategory === "all" 

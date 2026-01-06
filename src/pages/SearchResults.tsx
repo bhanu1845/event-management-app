@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -24,23 +24,50 @@ const SearchResults: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
+        // Static workers data
+        const allWorkers = [
+          {
+            id: '1',
+            name: 'Ravi Kumar',
+            rating: 4.8,
+            experience_years: 5,
+            category_id: '1',
+            skills: 'Wedding planning, decoration',
+            bio: 'Professional wedding organizer'
+          },
+          {
+            id: '2',
+            name: 'Priya Sharma',
+            rating: 4.7,
+            experience_years: 3,
+            category_id: '2',
+            skills: 'Birthday party planning, entertainment',
+            bio: 'Birthday celebration specialist'
+          },
+          {
+            id: '3',
+            name: 'Anil Reddy',
+            rating: 4.9,
+            experience_years: 7,
+            category_id: '3',
+            skills: 'Engagement ceremony, decoration',
+            bio: 'Engagement event coordinator'
+          }
+        ];
+
         if (!q) {
-          const { data, error } = await supabase.from<Worker>("workers").select("*").order("name");
-          if (error) throw error;
-          setWorkers(data || []);
+          setWorkers(allWorkers.sort((a, b) => a.name.localeCompare(b.name)));
         } else {
-          const pattern = `%${q}%`;
-          const { data, error } = await supabase
-            .from<Worker>("workers")
-            .select("*")
-            .or(`name.ilike.${pattern},skills.ilike.${pattern},bio.ilike.${pattern}`)
-            .order("name");
-          if (error) throw error;
-          setWorkers(data || []);
+          const filteredWorkers = allWorkers.filter(worker => 
+            worker.name.toLowerCase().includes(q.toLowerCase()) ||
+            worker.skills.toLowerCase().includes(q.toLowerCase()) ||
+            worker.bio.toLowerCase().includes(q.toLowerCase())
+          ).sort((a, b) => a.name.localeCompare(b.name));
+          setWorkers(filteredWorkers);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(err);
-        setError(err.message || "Failed to load results");
+        setError(err instanceof Error ? err.message : 'Failed to load results');
       } finally {
         setLoading(false);
       }

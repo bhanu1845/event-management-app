@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,29 +8,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Star, Users, Award, Clock, Sparkles, Search, Calendar, Heart, ArrowRight, ShoppingCart, User, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { CategoriesService, WorkersService, type Category, type Worker, getConnectionStatus } from "@/lib/dataServices";
 import "@/styles/Home.css";
 import "@/styles/ServiceCategories.css";
 import "@/styles/ProfessionalCards.css";
-
-interface Category {
-  id: string;
-  name: string;
-  description: string;
-  image_url: string;
-}
-
-interface Worker {
-  id: string;
-  name: string;
-  rating: number;
-  experience_years: number;
-  category_id: string;
-  category?: Category;
-  response_time: string;
-  projects_completed: number;
-  specialization: string;
-  profile_image_url?: string;
-}
 
 // Event Category Card Component with clean design
 const EventCategoryCard: React.FC<{ 
@@ -889,61 +870,53 @@ const Home = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: categoriesData, error: categoriesError } = await supabase
-          .from("categories")
-          .select("*")
-          .order("name");
-
-        if (categoriesError) throw categoriesError;
-        setCategories(categoriesData || []);
-
-        const { data: workersData, error: workersError } = await supabase
-          .from("workers")
-          .select(`
-            id, 
-            name, 
-            rating, 
-            experience_years, 
-            category_id,
-            categories (
-              id,
-              name,
-              description,
-              image_url
-            )
-          `)
-          .order("rating", { ascending: false })
-          .limit(20);
-
-        if (workersError) throw workersError;
-
-        const transformedWorkers: Worker[] = (workersData || []).map(worker => ({
-          ...worker,
-          category: worker.categories as Category,
-          response_time: "Within 1 hour",
-          projects_completed: Math.floor(Math.random() * 200) + 50,
-          specialization: worker.categories ? (worker.categories as Category).name : "General"
-        }));
-
-        setFeaturedWorkers(transformedWorkers);
-
-        const grouped = new Map<string, Worker[]>();
-        transformedWorkers.forEach(worker => {
-          if (worker.category) {
-            const categoryWorkers = grouped.get(worker.category.id) || [];
-            categoryWorkers.push(worker);
-            grouped.set(worker.category.id, categoryWorkers);
-          }
-        });
+        setLoading(true);
         
-        setWorkersByCategory(grouped);
+        // Show database connection status
+        const dbStatus = await getConnectionStatus();
+        console.log('🔗 Database Connection Status:', dbStatus);
+        
+        if (!dbStatus.connected) {
+          toast({
+            title: "Database Status",
+            description: dbStatus.message,
+            duration: 3000,
+          });
+        }
 
+        // Fetch categories from data service
+        console.log('📋 Fetching categories...');
+        const categoriesData = await CategoriesService.getAll();
+        console.log('✅ Categories loaded:', categoriesData.length);
+        setCategories(categoriesData);
+
+        // Fetch featured workers from data service
+        console.log('👥 Fetching workers...');
+        const workersData = await WorkersService.getFeatured(12);
+        console.log('✅ Workers loaded:', workersData.length);
+        
+        // Set featured workers for display
+        setFeaturedWorkers(workersData.slice(0, 6));
+        
+        // Group workers by category for category sections
+        const workersByCategory = new Map<string, Worker[]>();
+        for (const category of categoriesData) {
+          const categoryWorkers = await WorkersService.getByCategory(category.id);
+          if (categoryWorkers.length > 0) {
+            workersByCategory.set(category.id, categoryWorkers.slice(0, 4));
+          }
+        }
+        setWorkersByCategory(workersByCategory);
+
+        console.log('✅ Data loading completed successfully');
+        
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error('❌ Error fetching data:', error);
         toast({
           title: "Error",
-          description: "Failed to load data",
+          description: "Failed to load data. Using fallback content.",
           variant: "destructive",
+          duration: 5000,
         });
       } finally {
         setLoading(false);
@@ -1086,181 +1059,6 @@ const Home = () => {
                 t={t}
               />
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Explore Our Services Section - Professional Services Only */}
-      <section className="py-12 bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <motion.h2 
-              className="text-4xl font-bold text-gray-800 mb-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              {t('exploreServices')}
-            </motion.h2>
-            <motion.p 
-              className="text-xl text-gray-600 max-w-2xl mx-auto"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              {t('trustedProfessionals')}
-            </motion.p>
-          </div>
-
-          {/* Service Categories */}
-          <div className="mb-8">
-            <motion.h3 
-              className="text-2xl font-bold text-gray-800 mb-8 text-center"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              🛠️ Professional Services
-            </motion.h3>
-            
-            {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                  <Card key={i} className="animate-pulse rounded-xl border-0 shadow-lg">
-                    <div className="h-48 bg-gray-200 rounded-t-xl"></div>
-                    <CardContent className="p-4">
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-full mb-3"></div>
-                      <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <>
-                {/* Database Categories */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                  {categories.map((category, index) => (
-                    <motion.div
-                      key={category.id}
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.6, delay: 0.4 + index * 0.1 }}
-                      whileHover={{ y: -8, transition: { duration: 0.3 } }}
-                      className="group cursor-pointer"
-                    >
-                      <Link to={`/category/${category.id}`}>
-                        <Card className="h-full bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border-0">
-                          <div className="relative h-48 overflow-hidden">
-                            <img
-                              src={getCategoryImage(category.name)}
-                              alt={category.name}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.src = `https://via.placeholder.com/400x300/3B82F6/FFFFFF?text=${encodeURIComponent(category.name)}`;
-                              }}
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-60 group-hover:opacity-30 transition-opacity duration-300"></div>
-                            <div className="absolute top-4 right-4">
-                              <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xl">
-                                {category.name.includes("DJ") ? "🎵" : 
-                                 category.name.includes("Catering") ? "🍽️" :
-                                 category.name.includes("Photography") ? "📸" :
-                                 category.name.includes("Decoration") ? "🎨" :
-                                 category.name.includes("Venue") ? "🏛️" : "⭐"}
-                              </div>
-                            </div>
-                            <div className="absolute bottom-4 left-4 text-white">
-                              <h4 className="text-lg font-bold mb-1">{category.name}</h4>
-                              <p className="text-sm opacity-90 line-clamp-2">{category.description}</p>
-                            </div>
-                          </div>
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1 text-sm text-gray-600">
-                                <Users className="h-4 w-4" />
-                                <span>Professionals</span>
-                              </div>
-                              <ArrowRight className="h-4 w-4 text-blue-600 group-hover:translate-x-1 transition-transform duration-300" />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {/* Additional Service Categories - Static */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {smallCategoryButtons.filter(btn => !categories.some(cat => cat.name.toLowerCase().includes(btn.id))).map((button, index) => (
-                    <motion.div
-                      key={button.id}
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.6, delay: 0.8 + index * 0.1 }}
-                      whileHover={{ y: -8, transition: { duration: 0.3 } }}
-                      className="group cursor-pointer"
-                    >
-                      <Link to={`/category/${button.id}`}>
-                        <Card className="h-full bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border-0">
-                          <div className="relative h-48 overflow-hidden">
-                            <img
-                              src={getCategoryImage(button.name)}
-                              alt={button.name}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                const imageMap: { [key: string]: string } = {
-                                  'catering': 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop',
-                                  'photography': 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=400&h=300&fit=crop',
-                                  'venue': 'https://images.unsplash.com/photo-1519167534503-3abb6b0c58cb?w=400&h=300&fit=crop',
-                                  'dj': 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop',
-                                  'decoration': 'https://images.unsplash.com/photo-1464047736614-af63643285bf?w=400&h=300&fit=crop',
-                                  'entertainment': 'https://images.unsplash.com/photo-1514612595540-82fb2f38a92f?w=400&h=300&fit=crop',
-                                  'makeup': 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=400&h=300&fit=crop',
-                                  'planning': 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=300&fit=crop'
-                                };
-                                target.src = imageMap[button.id] || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=300&fit=crop';
-                              }}
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-60 group-hover:opacity-30 transition-opacity duration-300"></div>
-                            <div className="absolute top-4 right-4">
-                              <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xl">
-                                {button.emoji}
-                              </div>
-                            </div>
-                            <div className="absolute bottom-4 left-4 text-white">
-                              <h4 className="text-lg font-bold mb-1">{button.name}</h4>
-                              <p className="text-sm opacity-90">
-                                {button.id === 'catering' ? 'Delicious food for your events' :
-                                 button.id === 'photography' ? 'Capture your precious moments' :
-                                 button.id === 'venue' ? 'Perfect locations for events' :
-                                 button.id === 'dj' ? 'Music and entertainment' :
-                                 button.id === 'decoration' ? 'Beautiful event decorations' :
-                                 button.id === 'entertainment' ? 'Fun activities and shows' :
-                                 button.id === 'makeup' ? 'Professional styling services' :
-                                 button.id === 'planning' ? 'Complete event coordination' :
-                                 'Professional services'}
-                              </p>
-                            </div>
-                          </div>
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1 text-sm text-gray-600">
-                                <Users className="h-4 w-4" />
-                                <span>Specialists</span>
-                              </div>
-                              <ArrowRight className="h-4 w-4 text-blue-600 group-hover:translate-x-1 transition-transform duration-300" />
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    </motion.div>
-                  ))}
-                </div>
-              </>
-            )}
           </div>
         </div>
       </section>
